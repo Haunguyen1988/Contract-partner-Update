@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Card, DataTable } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
-import { apiRequest } from "../../../src/lib/api";
+import { ResourceState } from "../../../src/components/resource-state";
+import { apiRequest, mergeResourceSources } from "../../../src/lib/api";
 import { formatCurrency } from "../../../src/lib/format";
 import { mockBudgets, mockUsers } from "../../../src/lib/mocks";
 import { useSession } from "../../../src/lib/session";
@@ -11,8 +12,12 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function BudgetsPage() {
   const { token } = useSession();
-  const { data: budgets, reload } = useApiResource("/budgets", mockBudgets);
-  const { data: users } = useApiResource("/users", mockUsers);
+  const budgetsResource = useApiResource("/budgets", mockBudgets);
+  const usersResource = useApiResource("/users", mockUsers);
+  const budgets = budgetsResource.data ?? mockBudgets;
+  const users = usersResource.data ?? mockUsers;
+  const pageSource = mergeResourceSources([budgetsResource.source, usersResource.source]);
+  const pageError = budgetsResource.error?.message ?? usersResource.error?.message ?? null;
   const [status, setStatus] = useState("");
   const [form, setForm] = useState({
     fiscalYear: "2026",
@@ -21,8 +26,17 @@ export default function BudgetsPage() {
     allocatedAmount: ""
   });
 
+  if (pageSource === "loading") {
+    return <ResourceState source={pageSource} label="ngân sách" />;
+  }
+
+  if (pageSource === "unavailable" && !budgetsResource.data && !usersResource.data) {
+    return <ResourceState source="unavailable" label="ngân sách" error={pageError} />;
+  }
+
   return (
     <div className="grid-2">
+      {pageSource === "fallback" ? <ResourceState source="fallback" label="ngân sách" error={pageError} /> : null}
       <Card title="Cấp ngân sách" eyebrow="Budget allocation">
         <div className="stack">
           <PageHeader title="Owner budget" description="Mỗi budget được khóa theo fiscal year + owner + campaign." />
@@ -63,7 +77,7 @@ export default function BudgetsPage() {
                     })
                   }, token);
                   setStatus("Đã lưu budget allocation.");
-                  await reload();
+                  await budgetsResource.reload();
                 } catch (error) {
                   setStatus(error instanceof Error ? error.message : "Không thể lưu budget.");
                 }
@@ -91,4 +105,3 @@ export default function BudgetsPage() {
     </div>
   );
 }
-

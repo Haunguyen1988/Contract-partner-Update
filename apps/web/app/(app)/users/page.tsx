@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge, Card, DataTable } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
+import { ResourceState } from "../../../src/components/resource-state";
 import { apiRequest } from "../../../src/lib/api";
 import { mockUsers } from "../../../src/lib/mocks";
 import { useSession } from "../../../src/lib/session";
@@ -12,7 +13,8 @@ const roles = ["ADMIN", "PR_COR_STAFF", "PR_COR_MANAGER", "FINANCE", "LEGAL", "P
 
 export default function UsersPage() {
   const { token } = useSession();
-  const { data: users, reload } = useApiResource("/users", mockUsers);
+  const usersResource = useApiResource("/users", mockUsers);
+  const users = usersResource.data ?? mockUsers;
   const [status, setStatus] = useState("");
   const [form, setForm] = useState({
     fullName: "",
@@ -23,8 +25,17 @@ export default function UsersPage() {
     status: "ACTIVE"
   });
 
+  if (usersResource.source === "loading") {
+    return <ResourceState source="loading" label="người dùng và phân quyền" />;
+  }
+
+  if (usersResource.source === "unavailable" && !usersResource.data) {
+    return <ResourceState source="unavailable" label="người dùng và phân quyền" error={usersResource.error?.message ?? null} />;
+  }
+
   return (
     <div className="grid-2">
+      {usersResource.usingFallback ? <ResourceState source="fallback" label="người dùng và phân quyền" error={usersResource.error?.message ?? null} /> : null}
       <Card title="Provision user" eyebrow="RBAC">
         <div className="stack">
           <PageHeader title="Tạo user nội bộ" description="Admin có thể tạo user, gán vai trò và mở rộng quyền truy cập theo module." />
@@ -61,7 +72,7 @@ export default function UsersPage() {
                     body: JSON.stringify(form)
                   }, token);
                   setStatus("Đã provision user mới.");
-                  await reload();
+                  await usersResource.reload();
                 } catch (error) {
                   setStatus(error instanceof Error ? error.message : "Không thể tạo user.");
                 }
@@ -88,4 +99,3 @@ export default function UsersPage() {
     </div>
   );
 }
-

@@ -9,7 +9,8 @@ export async function GET() {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? null,
     prismaDatabaseConfigured: !String(process.env.DATABASE_URL ?? "").includes("[PROJECT-REF]"),
     prismaDirectConfigured: !String(process.env.DIRECT_URL ?? "").includes("[PROJECT-REF]"),
-    apiUrl: process.env.NEXT_PUBLIC_API_URL ?? null
+    apiConfigured: Boolean(process.env.NEXT_PUBLIC_API_URL),
+    apiUrl: process.env.NEXT_PUBLIC_API_URL ?? null,
+    mockFallbackEnabled: process.env.NEXT_PUBLIC_ENABLE_MOCK_FALLBACK === "true"
   });
 }
-

@@ -11,14 +11,18 @@
 1. Create a Supabase project.
 2. In SQL Editor, create a dedicated `prisma` database user with privileges for the `public` schema.
 3. From the Supabase `Connect` panel, copy:
-   - The transaction pooler string on port `6543` for `DATABASE_URL`
-   - The session/direct string on port `5432` for `DIRECT_URL`
-4. Keep runtime traffic on the pooled connection and schema changes on the direct connection.
+   - The session pooler string on port `5432` for current local development and long-running Node API use
+   - The transaction pooler string on port `6543` only for future serverless backend use
+4. For the current project state:
+   - `DATABASE_URL` = session pooler on `5432`
+   - `DIRECT_URL` = session/direct connection on `5432`
+5. If the backend later moves to serverless or auto-scaling, switch runtime `DATABASE_URL` to the transaction pooler on `6543`.
 
 ## Recommended environment variables
 
-- `DATABASE_URL`: Supabase pooled runtime string with `pgbouncer=true&connection_limit=1`
-- `DIRECT_URL`: Supabase direct/session string for Prisma migrations
+- `DATABASE_URL`: Supabase session pooler string on `5432` for the current local/Node backend
+- `DIRECT_URL`: Supabase session/direct string on `5432` for Prisma migrations
+- `DATABASE_URL_SERVERLESS`: optional future transaction pooler string on `6543`
 - `JWT_SECRET`: app JWT secret for current Nest auth flow
 - `NEXT_PUBLIC_API_URL`: API base URL used by the webapp
 - `NEXT_PUBLIC_SUPABASE_URL`: reserved for later direct Supabase SSR integration

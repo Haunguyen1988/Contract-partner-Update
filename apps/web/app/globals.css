@@ -144,6 +144,25 @@ button {
   margin: 0;
 }
 
+.resource-state {
+  padding: 18px 20px;
+  border-left: 4px solid transparent;
+}
+
+.resource-state[data-tone="neutral"] {
+  border-left-color: #64748b;
+}
+
+.resource-state[data-tone="warning"] {
+  border-left-color: #d97706;
+  background: rgba(255, 251, 235, 0.92);
+}
+
+.resource-state[data-tone="critical"] {
+  border-left-color: #dc2626;
+  background: rgba(254, 242, 242, 0.94);
+}
+
 .muted {
   color: var(--muted);
 }
@@ -289,4 +308,3 @@ button {
     height: auto;
   }
 }
-

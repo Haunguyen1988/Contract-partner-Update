@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Badge, Card, DataTable } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
-import { apiRequest } from "../../../src/lib/api";
+import { ResourceState } from "../../../src/components/resource-state";
+import { apiRequest, mergeResourceSources } from "../../../src/lib/api";
 import { formatCurrency, formatDate } from "../../../src/lib/format";
 import { mockContracts, mockPartners, mockUsers } from "../../../src/lib/mocks";
 import { useSession } from "../../../src/lib/session";
@@ -11,9 +12,14 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function ContractsPage() {
   const { token } = useSession();
-  const { data: contracts, reload } = useApiResource("/contracts", mockContracts);
-  const { data: partners } = useApiResource("/partners", mockPartners);
-  const { data: users } = useApiResource("/users", mockUsers);
+  const contractsResource = useApiResource("/contracts", mockContracts);
+  const partnersResource = useApiResource("/partners", mockPartners);
+  const usersResource = useApiResource("/users", mockUsers);
+  const contracts = contractsResource.data ?? mockContracts;
+  const partners = partnersResource.data ?? mockPartners;
+  const users = usersResource.data ?? mockUsers;
+  const pageSource = mergeResourceSources([contractsResource.source, partnersResource.source, usersResource.source]);
+  const pageError = contractsResource.error?.message ?? partnersResource.error?.message ?? usersResource.error?.message ?? null;
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [selectedContractId, setSelectedContractId] = useState(mockContracts[0]?.id ?? "");
@@ -30,8 +36,17 @@ export default function ContractsPage() {
     campaign: "GENERAL"
   });
 
+  if (pageSource === "loading") {
+    return <ResourceState source={pageSource} label="hợp đồng và tài liệu" />;
+  }
+
+  if (pageSource === "unavailable" && !contractsResource.data && !partnersResource.data && !usersResource.data) {
+    return <ResourceState source="unavailable" label="hợp đồng và tài liệu" error={pageError} />;
+  }
+
   return (
     <div className="stack">
+      {pageSource === "fallback" ? <ResourceState source="fallback" label="hợp đồng và tài liệu" error={pageError} /> : null}
       <div className="grid-2">
         <Card title="Tạo hợp đồng" eyebrow="Contract registry">
           <div className="stack">
@@ -98,7 +113,7 @@ export default function ContractsPage() {
                       })
                     }, token);
                     setStatus(response.budgetCheck?.warning ?? "Đã tạo hợp đồng thành công.");
-                    await reload();
+                    await contractsResource.reload();
                   } catch (error) {
                     setStatus(error instanceof Error ? error.message : "Không thể tạo hợp đồng.");
                   } finally {
@@ -147,7 +162,7 @@ export default function ContractsPage() {
                     }, token);
                     setStatus("Đã upload tài liệu hợp đồng.");
                     setDocumentFile(null);
-                    await reload();
+                    await contractsResource.reload();
                   } catch (error) {
                     setStatus(error instanceof Error ? error.message : "Upload thất bại.");
                   }
@@ -180,7 +195,7 @@ export default function ContractsPage() {
                 try {
                   await apiRequest(`/contracts/${contract.id}/activate`, { method: "POST" }, token);
                   setStatus(`Đã kích hoạt ${contract.contractNo}.`);
-                  await reload();
+                  await contractsResource.reload();
                 } catch (error) {
                   setStatus(error instanceof Error ? error.message : "Không thể kích hoạt hợp đồng.");
                 }
@@ -194,4 +209,3 @@ export default function ContractsPage() {
     </div>
   );
 }
-

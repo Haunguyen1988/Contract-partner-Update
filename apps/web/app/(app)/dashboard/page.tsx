@@ -2,15 +2,27 @@
 
 import { Badge, Card, DataTable, MetricCard } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
+import { ResourceState } from "../../../src/components/resource-state";
 import { formatCurrency, formatDate } from "../../../src/lib/format";
 import { mockDashboard } from "../../../src/lib/mocks";
 import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function DashboardPage() {
-  const { data, loading } = useApiResource("/dashboard/overview", mockDashboard);
+  const resource = useApiResource("/dashboard/overview", mockDashboard);
+  const { error, loading, source, usingFallback } = resource;
+  const data = resource.data ?? mockDashboard;
+
+  if (source === "loading") {
+    return <ResourceState source={source} label="dashboard điều hành" />;
+  }
+
+  if (source === "unavailable" && !resource.data) {
+    return <ResourceState source="unavailable" label="dashboard điều hành" error={error?.message ?? null} />;
+  }
 
   return (
     <div className="stack">
+      {usingFallback ? <ResourceState source="fallback" label="dashboard điều hành" error={error?.message ?? null} /> : null}
       <section className="hero panel">
         <PageHeader
           title="Tổng quan điều hành"

@@ -25,7 +25,7 @@ Monorepo for the internal PR COR contract management MVP defined by the BRD and 
 
 1. Copy `.env.example` to `.env`.
 2. Create a Supabase project and a dedicated `prisma` DB user.
-3. Put the Supabase pooler strings into `DATABASE_URL` and `DIRECT_URL`.
+3. Put the Supabase session pooler string (`5432`) into both `DATABASE_URL` and `DIRECT_URL` for local development.
 4. Install dependencies: `cmd /c npm install`
 5. Generate Prisma client: `cmd /c npm run prisma:generate --workspace @contract/db`
 6. Run migrations against Supabase: `cmd /c npm run prisma:migrate --workspace @contract/db -- --name init`
@@ -34,6 +34,8 @@ Monorepo for the internal PR COR contract management MVP defined by the BRD and 
 9. Start the web app: `cmd /c npm run dev:web`
 
 No Docker is required for the default development path anymore.
+For a future serverless backend, switch runtime `DATABASE_URL` to the transaction pooler on `6543`.
+The web app now prefers live API data by default. Keep `NEXT_PUBLIC_ENABLE_MOCK_FALLBACK="false"` for normal work, and only enable it if you intentionally want UI demo data while the API is offline.
 
 ## Default demo accounts
 
