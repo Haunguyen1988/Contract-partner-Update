@@ -1,0 +1,222 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  ADMIN
+  PR_COR_STAFF
+  PR_COR_MANAGER
+  FINANCE
+  LEGAL
+  PROCUREMENT
+  LEADERSHIP
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+}
+
+enum PartnerStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum ContractLifecycleStatus {
+  DRAFT
+  PENDING_ACTIVATION
+  ACTIVE
+  EXPIRED
+  TERMINATED
+  LIQUIDATED
+  ARCHIVED
+}
+
+enum DocumentType {
+  MAIN_CONTRACT
+  APPENDIX
+  SUPPORTING_DOC
+}
+
+enum AlertType {
+  CONTRACT_EXPIRY
+  BUDGET_OVERAGE
+  MISSING_DOCUMENT
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum EntityType {
+  USER
+  PARTNER
+  CONTRACT
+  BUDGET
+  DOCUMENT
+  ALERT
+  SETTING
+  IMPORT
+}
+
+model User {
+  id                   String             @id @default(cuid())
+  email                String             @unique
+  fullName             String
+  department           String?
+  role                 UserRole
+  status               UserStatus         @default(ACTIVE)
+  passwordHash         String
+  lastLoginAt          DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  primaryOwnedPartners Partner[]          @relation("PartnerPrimaryOwner")
+  backupOwnedPartners  Partner[]          @relation("PartnerBackupOwner")
+  ownedContracts       Contract[]         @relation("ContractOwner")
+  budgets              BudgetAllocation[] @relation("BudgetOwner")
+  uploadedDocuments    ContractDocument[] @relation("DocumentUploader")
+  changedAuditLogs     AuditLog[]         @relation("AuditActor")
+  resolvedAlerts       Alert[]            @relation("AlertResolver")
+}
+
+model Partner {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  legalName      String
+  shortName      String?
+  normalizedName String
+  taxCode        String?       @unique
+  category       String?
+  primaryOwnerId String
+  backupOwnerId  String?
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  address        String?
+  notes          String?
+  status         PartnerStatus @default(ACTIVE)
+  archivedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  primaryOwner   User          @relation("PartnerPrimaryOwner", fields: [primaryOwnerId], references: [id])
+  backupOwner    User?         @relation("PartnerBackupOwner", fields: [backupOwnerId], references: [id])
+  contracts      Contract[]
+
+  @@index([normalizedName])
+}
+
+model Contract {
+  id              String                  @id @default(cuid())
+  contractNo      String                  @unique
+  partnerId       String
+  ownerId         String
+  title           String
+  campaign        String                  @default("GENERAL")
+  fiscalYear      Int
+  value           Decimal                 @db.Decimal(18, 2)
+  startDate       DateTime
+  endDate         DateTime
+  lifecycleStatus ContractLifecycleStatus @default(DRAFT)
+  notes           String?
+  archivedAt      DateTime?
+  activatedAt     DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  partner         Partner                 @relation(fields: [partnerId], references: [id])
+  owner           User                    @relation("ContractOwner", fields: [ownerId], references: [id])
+  documents       ContractDocument[]
+  alerts          Alert[]
+
+  @@index([partnerId, ownerId, lifecycleStatus])
+}
+
+model ContractDocument {
+  id           String       @id @default(cuid())
+  contractId   String
+  type         DocumentType
+  filename     String
+  originalName String
+  storageKey   String
+  mimeType     String
+  size         Int
+  version      Int          @default(1)
+  uploadedById String
+  uploadedAt   DateTime     @default(now())
+  contract     Contract     @relation(fields: [contractId], references: [id])
+  uploadedBy   User         @relation("DocumentUploader", fields: [uploadedById], references: [id])
+
+  @@index([contractId, type])
+}
+
+model BudgetAllocation {
+  id              String   @id @default(cuid())
+  fiscalYear      Int
+  ownerId         String
+  campaign        String   @default("GENERAL")
+  allocatedAmount Decimal  @db.Decimal(18, 2)
+  committedAmount Decimal  @default(0) @db.Decimal(18, 2)
+  remainingAmount Decimal  @default(0) @db.Decimal(18, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  owner           User     @relation("BudgetOwner", fields: [ownerId], references: [id])
+
+  @@unique([fiscalYear, ownerId, campaign])
+}
+
+model Alert {
+  id           String        @id @default(cuid())
+  fingerprint  String        @unique
+  type         AlertType
+  severity     AlertSeverity
+  status       AlertStatus   @default(OPEN)
+  entityType   EntityType
+  entityId     String
+  contractId   String?
+  title        String
+  message      String
+  dueDate      DateTime
+  assignedRole UserRole?
+  resolvedAt   DateTime?
+  resolvedById String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  contract     Contract?     @relation(fields: [contractId], references: [id])
+  resolvedBy   User?         @relation("AlertResolver", fields: [resolvedById], references: [id])
+
+  @@index([entityType, entityId, status])
+}
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  entityType  EntityType
+  entityId    String
+  action      String
+  changedById String?
+  changedAt   DateTime  @default(now())
+  diffSummary Json?
+  changedBy   User?     @relation("AuditActor", fields: [changedById], references: [id])
+
+  @@index([entityType, entityId, changedAt])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
