@@ -9,7 +9,7 @@
     "test": "tsx src/services.spec.ts"
   },
   "dependencies": {
-    "@contract/shared": "file:../shared",
+    "@contract/shared": "*",
     "@prisma/client": "^5.21.1",
     "csv-parse": "^5.5.6"
   }

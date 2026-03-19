@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.21.1",
-    "@contract/shared": "file:../shared"
+    "@contract/shared": "*"
   },
   "devDependencies": {
     "bcryptjs": "^2.4.3",
