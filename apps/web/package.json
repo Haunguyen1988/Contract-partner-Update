@@ -8,10 +8,10 @@
     "start": "next start"
   },
   "dependencies": {
-    "@contract/core": "file:../../packages/core",
-    "@contract/db": "file:../../packages/db",
-    "@contract/shared": "file:../../packages/shared",
-    "@contract/ui": "file:../../packages/ui",
+    "@contract/core": "*",
+    "@contract/db": "*",
+    "@contract/shared": "*",
+    "@contract/ui": "*",
     "bcryptjs": "^2.4.3",
     "next": "^15.0.0",
     "react": "^19.0.0",
