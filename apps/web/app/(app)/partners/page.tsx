@@ -11,8 +11,8 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function PartnersPage() {
   const { token } = useSession();
-  const partnersResource = useApiResource("/partners", mockPartners);
-  const usersResource = useApiResource("/users", mockUsers);
+  const partnersResource = useApiResource("/api/internal/partners", mockPartners);
+  const usersResource = useApiResource("/api/internal/users", mockUsers);
   const partners = partnersResource.data ?? mockPartners;
   const users = usersResource.data ?? mockUsers;
   const pageSource = mergeResourceSources([partnersResource.source, usersResource.source]);
@@ -84,7 +84,7 @@ export default function PartnersPage() {
               onClick={async () => {
                 setSubmitting(true);
                 try {
-                  await apiRequest("/partners", {
+                  await apiRequest("/api/internal/partners", {
                     method: "POST",
                     body: JSON.stringify({
                       ...form,

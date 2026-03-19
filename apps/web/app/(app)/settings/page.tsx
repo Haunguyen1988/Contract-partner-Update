@@ -12,7 +12,7 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function SettingsPage() {
   const { token } = useSession();
-  const settingsResource = useApiResource("/settings", mockSettings);
+  const settingsResource = useApiResource("/api/internal/settings", mockSettings);
   const data = settingsResource.data ?? mockSettings;
   const [policy, setPolicy] = useState(mockSettings.budgetOverrunPolicy);
   const [leadDays, setLeadDays] = useState(mockSettings.expiryLeadDays.join(","));
@@ -55,7 +55,7 @@ export default function SettingsPage() {
           className="button-primary"
           onClick={async () => {
             try {
-              await apiRequest("/settings", {
+              await apiRequest("/api/internal/settings", {
                 method: "PATCH",
                 body: JSON.stringify({
                   budgetOverrunPolicy: policy,

@@ -8,7 +8,7 @@ import { mockDashboard } from "../../../src/lib/mocks";
 import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function DashboardPage() {
-  const resource = useApiResource("/dashboard/overview", mockDashboard);
+  const resource = useApiResource("/api/internal/dashboard/overview", mockDashboard);
   const { error, loading, source, usingFallback } = resource;
   const data = resource.data ?? mockDashboard;
 
@@ -23,7 +23,7 @@ export default function DashboardPage() {
   return (
     <div className="stack">
       {usingFallback ? <ResourceState source="fallback" label="dashboard điều hành" error={error?.message ?? null} /> : null}
-      <section className="hero panel">
+      <section className="hero panel" style={{ background: "var(--bg-0)", border: "1px solid var(--line)", padding: 32, boxShadow: "none" }}>
         <PageHeader
           title="Tổng quan điều hành"
           description="Theo dõi hợp đồng active, cảnh báo mở, ngân sách cam kết và các việc ưu tiên xử lý trong ngày."

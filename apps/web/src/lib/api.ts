@@ -37,6 +37,14 @@ export function mergeResourceSources(sources: ResourceSource[]): ResourceSource 
   return "api";
 }
 
+function resolveRequestUrl(path: string) {
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("/api/")) {
+    return path;
+  }
+
+  return `${API_BASE_URL}${path}`;
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(init.headers ?? {});
 
@@ -48,7 +56,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, token?
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  const response = await fetch(resolveRequestUrl(path), {
     ...init,
     headers
   });

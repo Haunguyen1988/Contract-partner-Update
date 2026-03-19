@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/ui && npm run build --workspace @contract/db && npm run build --workspace @contract/api && npm run build --workspace @contract/web",
-    "dev:api": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/db && npm run dev --workspace @contract/api",
+    "build": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/core && npm run build --workspace @contract/ui && npm run build --workspace @contract/db && npm run build --workspace @contract/api && npm run build --workspace @contract/web",
+    "dev:api": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/core && npm run build --workspace @contract/db && npm run dev --workspace @contract/api",
     "dev:web": "npm run build --workspace @contract/shared && npm run build --workspace @contract/ui && npm run dev --workspace @contract/web",
-    "test": "npm run test --workspace @contract/shared && npm run test --workspace @contract/api"
+    "test": "npm run test --workspace @contract/shared && npm run build --workspace @contract/core && npm run test --workspace @contract/core && npm run test --workspace @contract/api"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

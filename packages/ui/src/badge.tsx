@@ -5,11 +5,11 @@ interface BadgeProps {
   tone?: "neutral" | "success" | "warning" | "critical";
 }
 
-const toneMap: Record<NonNullable<BadgeProps["tone"]>, { bg: string; fg: string }> = {
-  neutral: { bg: "#e2e8f0", fg: "#0f172a" },
-  success: { bg: "#dcfce7", fg: "#166534" },
-  warning: { bg: "#fef3c7", fg: "#92400e" },
-  critical: { bg: "#fee2e2", fg: "#991b1b" }
+const toneMap: Record<NonNullable<BadgeProps["tone"]>, { bg: string; fg: string; border: string }> = {
+  neutral: { bg: "var(--bg-2)", fg: "var(--muted)", border: "var(--line)" },
+  success: { bg: "#ecfdf5", fg: "#059669", border: "#a7f3d0" },
+  warning: { bg: "#fffbeb", fg: "#d97706", border: "#fde68a" },
+  critical: { bg: "#fef2f2", fg: "#dc2626", border: "#fecaca" }
 };
 
 export function Badge({ children, tone = "neutral" }: BadgeProps) {
@@ -24,7 +24,8 @@ export function Badge({ children, tone = "neutral" }: BadgeProps) {
         fontSize: 12,
         fontWeight: 700,
         background: colors.bg,
-        color: colors.fg
+        color: colors.fg,
+        border: `1px solid ${colors.border}`
       }}
     >
       {children}

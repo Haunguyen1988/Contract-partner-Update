@@ -9,6 +9,7 @@
     "test": "tsx src/modules/imports/imports.module.spec.ts"
   },
   "dependencies": {
+    "@contract/core": "file:../../packages/core",
     "@contract/shared": "file:../../packages/shared",
     "@nestjs/common": "^10.4.7",
     "@nestjs/config": "^3.3.0",

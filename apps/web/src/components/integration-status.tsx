@@ -3,25 +3,25 @@
 import { useEffect, useState } from "react";
 import { Badge, Card } from "@contract/ui";
 import { isMockFallbackEnabled } from "../lib/api";
-import { getSupabaseProjectRef, hasSupabaseBrowserConfig } from "../lib/supabase/config";
-
 interface RuntimeStatus {
-  supabaseBrowserConfigured: boolean;
-  supabaseUrl: string | null;
-  prismaDatabaseConfigured: boolean;
-  prismaDirectConfigured: boolean;
+  deploymentMode: string;
+  databaseConfigured: boolean;
+  directDatabaseConfigured: boolean;
+  uploadDirConfigured: boolean;
+  uploadDir: string | null;
   apiConfigured: boolean;
   apiUrl: string | null;
   mockFallbackEnabled: boolean;
 }
 
 const fallbackStatus: RuntimeStatus = {
-  supabaseBrowserConfigured: hasSupabaseBrowserConfig(),
-  supabaseUrl: null,
-  prismaDatabaseConfigured: false,
-  prismaDirectConfigured: false,
-  apiConfigured: false,
-  apiUrl: null,
+  deploymentMode: "internal-only",
+  databaseConfigured: false,
+  directDatabaseConfigured: false,
+  uploadDirConfigured: false,
+  uploadDir: null,
+  apiConfigured: Boolean(process.env.NEXT_PUBLIC_API_URL),
+  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? null,
   mockFallbackEnabled: isMockFallbackEnabled()
 };
 
@@ -42,13 +42,17 @@ export function IntegrationStatus({ compact = false }: { compact?: boolean }) {
     void loadStatus();
   }, []);
 
-  const projectRef = getSupabaseProjectRef();
-
   if (compact) {
     return (
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Badge tone={status.supabaseBrowserConfigured ? "success" : "warning"}>
-          {status.supabaseBrowserConfigured ? "Supabase web configured" : "Supabase web missing"}
+        <Badge tone={status.databaseConfigured ? "success" : "warning"}>
+          {status.databaseConfigured ? "Database ready" : "Database pending"}
+        </Badge>
+        <Badge tone={status.directDatabaseConfigured ? "success" : "warning"}>
+          {status.directDatabaseConfigured ? "Direct URL OK" : "Direct URL pending"}
+        </Badge>
+        <Badge tone={status.uploadDirConfigured ? "success" : "warning"}>
+          {status.uploadDirConfigured ? "Upload storage OK" : "Upload storage missing"}
         </Badge>
         <Badge tone={status.apiConfigured ? "success" : "warning"}>
           {status.apiConfigured ? "API URL OK" : "API URL missing"}
@@ -56,28 +60,25 @@ export function IntegrationStatus({ compact = false }: { compact?: boolean }) {
         <Badge tone={status.mockFallbackEnabled ? "warning" : "success"}>
           {status.mockFallbackEnabled ? "Mock fallback ON" : "Real data only"}
         </Badge>
-        <Badge tone={status.prismaDatabaseConfigured && status.prismaDirectConfigured ? "success" : "warning"}>
-          {status.prismaDatabaseConfigured && status.prismaDirectConfigured ? "Prisma DB ready" : "Prisma DB pending"}
-        </Badge>
       </div>
     );
   }
 
   return (
-    <Card title="Integration status" eyebrow="Supabase + Vercel readiness">
+    <Card title="System status" eyebrow="Internal deployment readiness">
       <div className="stack">
         <p className="muted" style={{ margin: 0 }}>
-          Supabase project ref: <strong>{projectRef ?? "Chưa nhận diện"}</strong>
+          Deployment mode: <strong>{status.deploymentMode}</strong>
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <Badge tone={status.supabaseBrowserConfigured ? "success" : "warning"}>
-            {status.supabaseBrowserConfigured ? "Supabase browser config OK" : "Thiếu NEXT_PUBLIC Supabase env"}
+          <Badge tone={status.databaseConfigured ? "success" : "warning"}>
+            {status.databaseConfigured ? "DATABASE_URL OK" : "DATABASE_URL pending"}
           </Badge>
-          <Badge tone={status.prismaDatabaseConfigured ? "success" : "warning"}>
-            {status.prismaDatabaseConfigured ? "DATABASE_URL OK" : "DATABASE_URL chưa hoàn chỉnh"}
+          <Badge tone={status.directDatabaseConfigured ? "success" : "warning"}>
+            {status.directDatabaseConfigured ? "DIRECT_URL OK" : "DIRECT_URL pending"}
           </Badge>
-          <Badge tone={status.prismaDirectConfigured ? "success" : "warning"}>
-            {status.prismaDirectConfigured ? "DIRECT_URL OK" : "DIRECT_URL chưa hoàn chỉnh"}
+          <Badge tone={status.uploadDirConfigured ? "success" : "warning"}>
+            {status.uploadDirConfigured ? "UPLOAD_DIR OK" : "UPLOAD_DIR missing"}
           </Badge>
           <Badge tone={status.apiConfigured ? "success" : "warning"}>
             {status.apiConfigured ? "NEXT_PUBLIC_API_URL OK" : "NEXT_PUBLIC_API_URL missing"}
@@ -87,16 +88,21 @@ export function IntegrationStatus({ compact = false }: { compact?: boolean }) {
           </Badge>
         </div>
         <p className="muted" style={{ margin: 0 }}>
-          Web app can now use your Supabase project URL and anon key. The current login flow still depends on the Nest API and Prisma,
-          so we still need the Supabase Postgres connection strings from the Supabase Connect panel to make backend login fully work.
+          The app is aligned with an internal-only deployment: Next.js web, Nest API, self-hosted Postgres, and local or shared upload
+          storage.
         </p>
         {status.apiUrl ? (
           <p className="muted" style={{ margin: 0 }}>
             API endpoint: <strong>{status.apiUrl}</strong>
           </p>
         ) : null}
+        {status.uploadDir ? (
+          <p className="muted" style={{ margin: 0 }}>
+            Upload directory: <strong>{status.uploadDir}</strong>
+          </p>
+        ) : null}
         <p className="muted" style={{ margin: 0 }}>
-          Live API data is now the default. Mock/demo data only appears when `NEXT_PUBLIC_ENABLE_MOCK_FALLBACK=true`.
+          Live API data is the default. Mock/demo data only appears when `NEXT_PUBLIC_ENABLE_MOCK_FALLBACK=true`.
         </p>
       </div>
     </Card>

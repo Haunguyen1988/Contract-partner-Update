@@ -17,13 +17,13 @@ export default function LoginPage() {
     <div className="login-shell">
       <div className="login-card panel">
         <section className="login-hero">
-          <p className="muted" style={{ textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 0 }}>Phase 1 MVP</p>
-          <h1 style={{ fontSize: 46, lineHeight: 1.05, marginBottom: 16 }}>Ứng dụng quản trị hợp đồng báo chí cho PR COR</h1>
-          <p className="muted" style={{ fontSize: 18 }}>
+          <p className="muted" style={{ fontWeight: 600, letterSpacing: "0.05em", marginTop: 0, fontSize: 13 }}>Phase 1 MVP</p>
+          <h1 style={{ fontSize: 40, lineHeight: 1.1, marginBottom: 16, letterSpacing: "-0.03em" }}>Ứng dụng quản trị hợp đồng báo chí cho PR COR</h1>
+          <p className="muted" style={{ fontSize: 16, lineHeight: 1.6 }}>
             Tập trung hóa đối tác, hợp đồng, ngân sách, tài liệu và cảnh báo hết hạn trong một không gian vận hành chung.
           </p>
-          <div className="panel" style={{ padding: 18, marginTop: 28 }}>
-            <p style={{ marginTop: 0, fontWeight: 700 }}>Những gì đã có trong MVP</p>
+          <div className="panel" style={{ padding: 24, marginTop: 32, background: "var(--bg-1)", boxShadow: "none" }}>
+            <p style={{ marginTop: 0, fontWeight: 600, fontSize: 15 }}>Những gì đã có trong MVP</p>
             <ul style={{ marginBottom: 0, paddingLeft: 18, color: "#334155" }}>
               <li>Auth nội bộ và phân quyền theo vai trò</li>
               <li>Partner registry và duplicate check</li>
@@ -37,9 +37,9 @@ export default function LoginPage() {
         </section>
 
         <section className="login-form">
-          <h2 style={{ marginTop: 0 }}>Đăng nhập</h2>
-          <p className="muted">Dùng tài khoản nội bộ seeded trong README để vào dashboard.</p>
-          <div className="stack">
+          <h2 style={{ marginTop: 0, fontSize: 28, letterSpacing: "-0.02em" }}>Đăng nhập</h2>
+          <p className="muted" style={{ fontSize: 14 }}>Dùng tài khoản nội bộ seeded trong README để vào dashboard.</p>
+          <div className="stack" style={{ marginTop: 24 }}>
             <div className="field">
               <label>Email</label>
               <input value={email} onChange={(event) => setEmail(event.target.value)} />

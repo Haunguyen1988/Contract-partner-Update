@@ -27,7 +27,7 @@ export default function ImportsPage() {
             className="button-primary"
             onClick={async () => {
               try {
-                const result = await apiRequest("/imports/partners/validate", {
+                const result = await apiRequest("/api/internal/imports/partners/validate", {
                   method: "POST",
                   body: JSON.stringify({ csv: partnerCsv })
                 }, token);
@@ -40,7 +40,7 @@ export default function ImportsPage() {
             Validate partner file
           </button>
         </div>
-        <pre className="panel" style={{ padding: 16, overflowX: "auto" }}>{partnerResult || "Chưa có kết quả."}</pre>
+        <pre className="panel" style={{ padding: 16, overflowX: "auto", background: "var(--bg-1)", boxShadow: "none" }}>{partnerResult || "Chưa có kết quả."}</pre>
       </Card>
 
       <Card title="Validate contract CSV" eyebrow="Migration">
@@ -54,7 +54,7 @@ export default function ImportsPage() {
             className="button-primary"
             onClick={async () => {
               try {
-                const result = await apiRequest("/imports/contracts/validate", {
+                const result = await apiRequest("/api/internal/imports/contracts/validate", {
                   method: "POST",
                   body: JSON.stringify({ csv: contractCsv })
                 }, token);
@@ -67,9 +67,8 @@ export default function ImportsPage() {
             Validate contract file
           </button>
         </div>
-        <pre className="panel" style={{ padding: 16, overflowX: "auto" }}>{contractResult || "Chưa có kết quả."}</pre>
+        <pre className="panel" style={{ padding: 16, overflowX: "auto", background: "var(--bg-1)", boxShadow: "none" }}>{contractResult || "Chưa có kết quả."}</pre>
       </Card>
     </div>
   );
 }
-

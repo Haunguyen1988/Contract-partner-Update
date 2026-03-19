@@ -12,8 +12,8 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function BudgetsPage() {
   const { token } = useSession();
-  const budgetsResource = useApiResource("/budgets", mockBudgets);
-  const usersResource = useApiResource("/users", mockUsers);
+  const budgetsResource = useApiResource("/api/internal/budgets", mockBudgets);
+  const usersResource = useApiResource("/api/internal/users", mockUsers);
   const budgets = budgetsResource.data ?? mockBudgets;
   const users = usersResource.data ?? mockUsers;
   const pageSource = mergeResourceSources([budgetsResource.source, usersResource.source]);
@@ -68,7 +68,7 @@ export default function BudgetsPage() {
               className="button-primary"
               onClick={async () => {
                 try {
-                  await apiRequest("/budgets", {
+                  await apiRequest("/api/internal/budgets", {
                     method: "POST",
                     body: JSON.stringify({
                       ...form,

@@ -12,7 +12,7 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function AlertsPage() {
   const { token } = useSession();
-  const alertsResource = useApiResource("/alerts", mockAlerts);
+  const alertsResource = useApiResource("/api/internal/alerts", mockAlerts);
   const alerts = alertsResource.data ?? mockAlerts;
   const [status, setStatus] = useState("");
 
@@ -42,7 +42,7 @@ export default function AlertsPage() {
             className="button-ghost"
             onClick={async () => {
               try {
-                await apiRequest(`/alerts/${alert.id}/resolve`, {
+                await apiRequest(`/api/internal/alerts/${alert.id}/resolve`, {
                   method: "PATCH",
                   body: JSON.stringify({ status: "RESOLVED" })
                 }, token);

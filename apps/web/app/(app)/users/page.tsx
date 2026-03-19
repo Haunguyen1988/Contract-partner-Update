@@ -13,7 +13,7 @@ const roles = ["ADMIN", "PR_COR_STAFF", "PR_COR_MANAGER", "FINANCE", "LEGAL", "P
 
 export default function UsersPage() {
   const { token } = useSession();
-  const usersResource = useApiResource("/users", mockUsers);
+  const usersResource = useApiResource("/api/internal/users", mockUsers);
   const users = usersResource.data ?? mockUsers;
   const [status, setStatus] = useState("");
   const [form, setForm] = useState({
@@ -67,7 +67,7 @@ export default function UsersPage() {
               className="button-primary"
               onClick={async () => {
                 try {
-                  await apiRequest("/users", {
+                  await apiRequest("/api/internal/users", {
                     method: "POST",
                     body: JSON.stringify(form)
                   }, token);

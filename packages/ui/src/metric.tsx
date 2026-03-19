@@ -8,15 +8,16 @@ export function MetricCard({ label, value, caption }: MetricCardProps) {
   return (
     <div
       style={{
-        padding: 20,
-        borderRadius: 20,
-        background: "linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)",
-        border: "1px solid rgba(15, 23, 42, 0.08)"
+        padding: 24,
+        borderRadius: "var(--radius-md)",
+        background: "var(--surface)",
+        border: "1px solid var(--line)",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
       }}
     >
-      <p style={{ margin: 0, color: "#64748b", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</p>
-      <p style={{ margin: "14px 0 8px", fontSize: 34, fontWeight: 800, color: "#0f172a" }}>{value}</p>
-      {caption ? <p style={{ margin: 0, color: "#475569", fontSize: 14 }}>{caption}</p> : null}
+      <p style={{ margin: 0, color: "var(--muted)", fontSize: 13, fontWeight: 500 }}>{label}</p>
+      <p style={{ margin: "12px 0 8px", fontSize: 32, fontWeight: 600, color: "var(--text)", letterSpacing: "-0.02em" }}>{value}</p>
+      {caption ? <p style={{ margin: 0, color: "var(--muted)", fontSize: 14 }}>{caption}</p> : null}
     </div>
   );
 }

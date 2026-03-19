@@ -10,11 +10,11 @@ export function Card({ title, eyebrow, actions, children }: CardProps) {
   return (
     <section
       style={{
-        borderRadius: 24,
-        padding: 24,
-        background: "rgba(255,255,255,0.88)",
-        border: "1px solid rgba(15, 23, 42, 0.08)",
-        boxShadow: "0 24px 60px rgba(15, 23, 42, 0.08)"
+        borderRadius: "var(--radius-lg)",
+        padding: "24px",
+        background: "var(--surface)",
+        border: "1px solid var(--line)",
+        boxShadow: "var(--shadow)"
       }}
     >
       {(title || eyebrow || actions) && (

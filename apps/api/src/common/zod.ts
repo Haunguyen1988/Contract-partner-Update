@@ -1,7 +1,7 @@
 import { BadRequestException } from "@nestjs/common";
-import type { ZodSchema } from "zod";
+import type { ZodTypeAny, output } from "zod";
 
-export function parseOrThrow<T>(schema: ZodSchema<T>, payload: unknown): T {
+export function parseOrThrow<TSchema extends ZodTypeAny>(schema: TSchema, payload: unknown): output<TSchema> {
   const result = schema.safeParse(payload);
 
   if (!result.success) {
@@ -13,4 +13,3 @@ export function parseOrThrow<T>(schema: ZodSchema<T>, payload: unknown): T {
 
   return result.data;
 }
-

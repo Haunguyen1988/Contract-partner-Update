@@ -1,10 +1,17 @@
-import { Body, Controller, Get, Injectable, Module, NotFoundException, Param, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Get, Injectable, Module, Param, Post, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { promises as fs } from "node:fs";
-import path from "node:path";
-import { contractDocumentMetadataSchema } from "@contract/shared";
+import {
+  DocumentsDomainService,
+  LocalDocumentFileStore,
+  type UploadedBinaryFile
+} from "@contract/core";
+import {
+  contractDocumentMetadataSchema,
+  type ContractDocumentMetadataInput
+} from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
+import { rethrowDomainError } from "../../common/domain-error";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
 import { Roles } from "../../common/roles.decorator";
@@ -13,107 +20,68 @@ import { parseOrThrow } from "../../common/zod";
 import { JwtAuthGuard } from "../auth/auth.module";
 
 @Injectable()
-export class DocumentsService {
+export class DocumentsService extends DocumentsDomainService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
-    private readonly auditService: AuditService
-  ) {}
-
-  async listByContract(contractId: string) {
-    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
-
-    if (!contract) {
-      throw new NotFoundException("Không tìm thấy hợp đồng.");
-    }
-
-    const documents = await this.prisma.contractDocument.findMany({
-      where: { contractId },
-      orderBy: { uploadedAt: "desc" }
-    });
-
-    return documents.map((document) => ({
-      id: document.id,
-      type: document.type,
-      filename: document.filename,
-      originalName: document.originalName,
-      mimeType: document.mimeType,
-      size: document.size,
-      version: document.version,
-      uploadedAt: document.uploadedAt.toISOString()
-    }));
+    prisma: PrismaService,
+    configService: ConfigService,
+    auditService: AuditService
+  ) {
+    super(
+      prisma,
+      new LocalDocumentFileStore(configService.get<string>("UPLOAD_DIR", "./apps/api/uploads")),
+      auditService
+    );
   }
 
-  async upload(contractId: string, metadataPayload: unknown, file: Express.Multer.File | undefined, currentUser: AuthenticatedUser) {
-    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
-
-    if (!contract) {
-      throw new NotFoundException("Không tìm thấy hợp đồng.");
+  override async listByContract(contractId: string) {
+    try {
+      return await super.listByContract(contractId);
+    } catch (error) {
+      rethrowDomainError(error);
     }
-
-    if (!file) {
-      throw new NotFoundException("Thiếu file upload.");
-    }
-
-    const rawMetadata = typeof metadataPayload === "object" && metadataPayload !== null
-      ? metadataPayload as Record<string, unknown>
-      : {};
-
-    const metadata = parseOrThrow(contractDocumentMetadataSchema, {
-      ...rawMetadata,
-      filename: file.filename ?? file.originalname,
-      mimeType: file.mimetype,
-      size: file.size
-    });
-
-    const uploadDir = this.configService.get<string>("UPLOAD_DIR", "./apps/api/uploads");
-    const contractDir = path.join(uploadDir, contractId);
-    await fs.mkdir(contractDir, { recursive: true });
-
-    const safeFilename = `${Date.now()}-${file.originalname.replace(/\s+/g, "-")}`;
-    const storageKey = path.join(contractId, safeFilename);
-    const fullPath = path.join(uploadDir, storageKey);
-    await fs.writeFile(fullPath, file.buffer);
-
-    const latest = await this.prisma.contractDocument.findFirst({
-      where: { contractId, type: metadata.type },
-      orderBy: { version: "desc" }
-    });
-
-    const document = await this.prisma.contractDocument.create({
-      data: {
-        contractId,
-        type: metadata.type,
-        filename: safeFilename,
-        originalName: file.originalname,
-        storageKey,
-        mimeType: file.mimetype,
-        size: file.size,
-        version: (latest?.version ?? 0) + 1,
-        uploadedById: currentUser.id
-      }
-    });
-
-    await this.auditService.log({
-      entityType: "DOCUMENT",
-      entityId: document.id,
-      action: "UPLOAD_DOCUMENT",
-      changedById: currentUser.id,
-      diffSummary: { contractId, type: metadata.type, filename: document.filename }
-    });
-
-    return {
-      id: document.id,
-      type: document.type,
-      filename: document.filename,
-      originalName: document.originalName,
-      storageKey: document.storageKey,
-      mimeType: document.mimeType,
-      size: document.size,
-      version: document.version,
-      uploadedAt: document.uploadedAt.toISOString()
-    };
   }
+
+  override async upload(
+    contractId: string,
+    metadata: ContractDocumentMetadataInput,
+    file: UploadedBinaryFile | undefined,
+    changedById: string
+  ) {
+    try {
+      return await super.upload(contractId, metadata, file, changedById);
+    } catch (error) {
+      rethrowDomainError(error);
+    }
+  }
+}
+
+function mapUploadedFile(file: Express.Multer.File | undefined): UploadedBinaryFile | undefined {
+  if (!file) {
+    return undefined;
+  }
+
+  return {
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    size: file.size,
+    buffer: file.buffer
+  };
+}
+
+function parseDocumentMetadata(
+  payload: unknown,
+  file: Express.Multer.File | undefined
+): ContractDocumentMetadataInput {
+  const rawMetadata = typeof payload === "object" && payload !== null
+    ? payload as Record<string, unknown>
+    : {};
+
+  return parseOrThrow(contractDocumentMetadataSchema, {
+    ...rawMetadata,
+    filename: file?.filename ?? file?.originalname ?? "missing-upload.bin",
+    mimeType: file?.mimetype ?? "application/octet-stream",
+    size: file?.size ?? 1
+  });
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -136,7 +104,12 @@ export class DocumentsController {
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() currentUser: AuthenticatedUser
   ) {
-    return this.documentsService.upload(contractId, metadataPayload, file, currentUser);
+    return this.documentsService.upload(
+      contractId,
+      parseDocumentMetadata(metadataPayload, file),
+      mapUploadedFile(file),
+      currentUser.id
+    );
   }
 }
 

@@ -12,9 +12,9 @@ import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function ContractsPage() {
   const { token } = useSession();
-  const contractsResource = useApiResource("/contracts", mockContracts);
-  const partnersResource = useApiResource("/partners", mockPartners);
-  const usersResource = useApiResource("/users", mockUsers);
+  const contractsResource = useApiResource("/api/internal/contracts", mockContracts);
+  const partnersResource = useApiResource("/api/internal/partners", mockPartners);
+  const usersResource = useApiResource("/api/internal/users", mockUsers);
   const contracts = contractsResource.data ?? mockContracts;
   const partners = partnersResource.data ?? mockPartners;
   const users = usersResource.data ?? mockUsers;
@@ -101,7 +101,7 @@ export default function ContractsPage() {
                 onClick={async () => {
                   setSubmitting(true);
                   try {
-                    const response = await apiRequest<{ budgetCheck?: { warning?: string | null } }>("/contracts", {
+                    const response = await apiRequest<{ budgetCheck?: { warning?: string | null } }>("/api/internal/contracts", {
                       method: "POST",
                       body: JSON.stringify({
                         ...contractForm,
@@ -156,7 +156,7 @@ export default function ContractsPage() {
                   formData.append("file", documentFile);
 
                   try {
-                    await apiRequest(`/documents/contracts/${selectedContractId}`, {
+                    await apiRequest(`/api/internal/documents/contracts/${selectedContractId}`, {
                       method: "POST",
                       body: formData
                     }, token);
@@ -193,7 +193,7 @@ export default function ContractsPage() {
               disabled={contract.lifecycleStatus === "ACTIVE"}
               onClick={async () => {
                 try {
-                  await apiRequest(`/contracts/${contract.id}/activate`, { method: "POST" }, token);
+                  await apiRequest(`/api/internal/contracts/${contract.id}/activate`, { method: "POST" }, token);
                   setStatus(`Đã kích hoạt ${contract.contractNo}.`);
                   await contractsResource.reload();
                 } catch (error) {

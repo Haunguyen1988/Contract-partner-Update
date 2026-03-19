@@ -8,12 +8,15 @@
     "start": "next start"
   },
   "dependencies": {
+    "@contract/core": "file:../../packages/core",
+    "@contract/db": "file:../../packages/db",
     "@contract/shared": "file:../../packages/shared",
     "@contract/ui": "file:../../packages/ui",
-    "@supabase/supabase-js": "^2.57.4",
+    "bcryptjs": "^2.4.3",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^22.8.1",

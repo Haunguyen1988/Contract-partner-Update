@@ -133,3 +133,4 @@ export type UpdateBudgetAllocationInput = z.infer<typeof updateBudgetAllocationS
 export type ContractDocumentMetadataInput = z.infer<typeof contractDocumentMetadataSchema>;
 export type AppSettingsInput = z.infer<typeof appSettingsSchema>;
 export type CsvImportInput = z.infer<typeof csvImportSchema>;
+export type AlertResolutionInput = z.infer<typeof alertResolutionSchema>;

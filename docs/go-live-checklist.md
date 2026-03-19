@@ -1,12 +1,12 @@
 # Go-Live Checklist
 
-- `BRD` và workflow nội bộ đã được chốt.
-- Tài khoản user và vai trò đã provision.
-- Master data đối tác đã được cleanup theo template CSV.
-- Supabase project, `prisma` DB user, and connection strings đã xác nhận.
-- Database migration và seed chạy thành công.
-- Chính sách `budget_overrun_policy` đã xác nhận với Finance.
-- Lịch cảnh báo hết hạn đã xác nhận với PR COR Manager.
-- UAT cho `AC-01`, `AC-02`, `AC-04`, `AC-06`, `AC-10` đã sign-off.
-- Backup database và upload storage đã được bật trước go-live.
-- Vercel environment variables cho web app đã được nhập đầy đủ ở Development / Preview / Production.
+- BRD and internal workflow are finalized.
+- User accounts and roles are provisioned.
+- Partner master data is cleaned up using the CSV templates.
+- Internal Postgres server, app DB user, and connection strings are confirmed.
+- Database migration and seed ran successfully.
+- `budget_overrun_policy` is confirmed with Finance.
+- Contract expiry alert schedule is confirmed with the PR COR manager.
+- UAT for `AC-01`, `AC-02`, `AC-04`, `AC-06`, and `AC-10` is signed off.
+- Database backups and upload storage backups are enabled before go-live.
+- Web and API environment variables are configured on the internal host or LAN servers.

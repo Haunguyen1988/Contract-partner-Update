@@ -38,7 +38,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const response = await apiRequest<{ accessToken: string; user: SessionUser }>("/auth/login", {
+    const response = await apiRequest<{ accessToken: string; user: SessionUser }>("/api/internal/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
@@ -71,4 +71,3 @@ export function useSession() {
 
   return value;
 }
-

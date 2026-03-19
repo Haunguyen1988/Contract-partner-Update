@@ -8,7 +8,7 @@ import { mockAuditLogs } from "../../../src/lib/mocks";
 import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function AuditPage() {
-  const auditResource = useApiResource("/audit", mockAuditLogs);
+  const auditResource = useApiResource("/api/internal/audit", mockAuditLogs);
   const data = auditResource.data ?? mockAuditLogs;
 
   if (auditResource.source === "loading") {
