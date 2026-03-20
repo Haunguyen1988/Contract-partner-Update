@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/core && npm run build --workspace @contract/ui && npm run build --workspace @contract/db && npm run build --workspace @contract/web",
+    "build": "npm run prisma:generate --workspace @contract/db && npm run build --workspace @contract/shared && npm run build --workspace @contract/core && npm run build --workspace @contract/ui && npm run build --workspace @contract/web",
     "dev:web": "npm run build --workspace @contract/shared && npm run build --workspace @contract/ui && npm run dev --workspace @contract/web",
     "test": "npm run test --workspace @contract/shared && npm run build --workspace @contract/core && npm run test --workspace @contract/core"
   },

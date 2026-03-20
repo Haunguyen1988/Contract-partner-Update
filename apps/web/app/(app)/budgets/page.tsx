@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Card, DataTable } from "@contract/ui";
+import { Card, DataTable, ProgressBar } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
 import { ResourceState } from "../../../src/components/resource-state";
 import { apiRequest, mergeResourceSources } from "../../../src/lib/api";
@@ -91,15 +91,32 @@ export default function BudgetsPage() {
 
       <Card title="Sổ ngân sách" eyebrow="Budget register">
         <DataTable
-          columns={["Owner", "Fiscal year", "Campaign", "Allocated", "Committed", "Remaining"]}
-          rows={budgets.map((budget) => [
-            budget.ownerName,
-            String(budget.fiscalYear),
-            budget.campaign,
-            formatCurrency(budget.allocatedAmount),
-            formatCurrency(budget.committedAmount),
-            formatCurrency(budget.remainingAmount)
-          ])}
+          columns={["Owner", "Fiscal year", "Campaign", "Phân bổ", "Đã cam kết", "Còn lại & Tiến độ"]}
+          rows={budgets.map((budget) => {
+            const allocated = Number(budget.allocatedAmount);
+            const committed = Number(budget.committedAmount);
+            const percentage = allocated > 0 ? (committed / allocated) * 100 : 0;
+            
+            let tone: "success" | "warning" | "danger" = "success";
+            if (percentage > 90) tone = "danger";
+            else if (percentage > 70) tone = "warning";
+
+            return [
+              budget.ownerName,
+              String(budget.fiscalYear),
+              budget.campaign,
+              formatCurrency(allocated),
+              formatCurrency(committed),
+              <div key={budget.id} style={{ minWidth: "200px" }}>
+                <ProgressBar
+                  value={committed}
+                  max={allocated}
+                  sublabel={`${formatCurrency(budget.remainingAmount)} left`}
+                  tone={tone}
+                />
+              </div>
+            ];
+          })}
         />
       </Card>
     </div>

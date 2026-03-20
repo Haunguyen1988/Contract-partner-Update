@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Card, DataTable, MetricCard } from "@contract/ui";
+import { Badge, Card, DataTable, MetricCard, ProgressBar } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
 import { ResourceState } from "../../../src/components/resource-state";
 import { formatCurrency, formatDate } from "../../../src/lib/format";
@@ -38,11 +38,30 @@ export default function DashboardPage() {
       </section>
 
       <div className="grid-2">
-        <Card title="Top owner theo mức sử dụng">
-          <DataTable
-            columns={["Owner", "Committed", "Remaining"]}
-            rows={data.topOwners.map((owner) => [owner.ownerName, formatCurrency(owner.committedAmount), formatCurrency(owner.remainingAmount)])}
-          />
+        <Card title="Phân bổ ngân sách theo Owner" eyebrow="Budget usage">
+          <div className="stack" style={{ padding: "0 4px" }}>
+            {data.topOwners.map((owner) => {
+              const committed = Number(owner.committedAmount);
+              const remaining = Number(owner.remainingAmount);
+              const total = committed + remaining;
+              const percentage = total > 0 ? (committed / total) * 100 : 0;
+              
+              let tone: "success" | "warning" | "danger" = "success";
+              if (percentage > 90) tone = "danger";
+              else if (percentage > 70) tone = "warning";
+
+              return (
+                <ProgressBar
+                  key={owner.ownerName}
+                  label={owner.ownerName}
+                  sublabel={`${formatCurrency(committed)} / ${formatCurrency(total)}`}
+                  value={committed}
+                  max={total}
+                  tone={tone}
+                />
+              );
+            })}
+          </div>
         </Card>
 
         <Card title="Việc cần xử lý">

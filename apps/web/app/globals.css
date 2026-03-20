@@ -349,9 +349,47 @@ button {
   .form-grid {
     grid-template-columns: 1fr;
   }
-
-  .sidebar {
-    position: relative;
-    height: auto;
-  }
 }
+
+/* Progress Bar */
+.progress-container {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.progress-sublabel {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.progress-track {
+  height: 8px;
+  width: 100%;
+  background: var(--bg-2);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 500ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.progress-tone-default { background: var(--accent); }
+.progress-tone-success { background: #22c55e; }
+.progress-tone-warning { background: #f59e0b; }
+.progress-tone-danger { background: var(--danger); }
