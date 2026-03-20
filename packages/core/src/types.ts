@@ -55,7 +55,7 @@ export interface DocumentFileStore {
 }
 
 export type SettingsPrismaClient = Pick<PrismaClient, "$transaction" | "appSetting">;
-export type AlertsPrismaClient = Pick<PrismaClient, "alert" | "contract">;
+export type AlertsPrismaClient = Pick<PrismaClient, "alert" | "contract" | "budgetAllocation">;
 export type ImportsPrismaClient = Pick<PrismaClient, "user">;
 export type BudgetsPrismaClient = Pick<PrismaClient, "budgetAllocation" | "contract">;
 export type ContractsPrismaClient = Pick<PrismaClient, "contract" | "partner" | "user">;

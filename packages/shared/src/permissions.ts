@@ -1,0 +1,60 @@
+import type { Role } from "./enums";
+
+export type Permission =
+  | "CONTRACT_VIEW"
+  | "CONTRACT_CREATE"
+  | "CONTRACT_EDIT"
+  | "CONTRACT_ACTIVATE"
+  | "CONTRACT_SUBMIT"
+  | "CONTRACT_APPROVE"
+  | "PARTNER_VIEW"
+  | "PARTNER_MANAGE"
+  | "BUDGET_VIEW"
+  | "BUDGET_MANAGE"
+  | "USER_MANAGE"
+  | "ALERT_VIEW"
+  | "ALERT_RESOLVE";
+
+const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
+  ADMIN: [
+    "CONTRACT_VIEW", "CONTRACT_CREATE", "CONTRACT_EDIT", "CONTRACT_ACTIVATE", "CONTRACT_SUBMIT", "CONTRACT_APPROVE",
+    "PARTNER_VIEW", "PARTNER_MANAGE",
+    "BUDGET_VIEW", "BUDGET_MANAGE",
+    "USER_MANAGE",
+    "ALERT_VIEW", "ALERT_RESOLVE"
+  ],
+  PR_COR_STAFF: [
+    "CONTRACT_VIEW", "CONTRACT_CREATE", "CONTRACT_EDIT", "CONTRACT_SUBMIT",
+    "PARTNER_VIEW",
+    "BUDGET_VIEW",
+    "ALERT_VIEW", "ALERT_RESOLVE"
+  ],
+  PR_COR_MANAGER: [
+    "CONTRACT_VIEW", "CONTRACT_CREATE", "CONTRACT_EDIT", "CONTRACT_ACTIVATE", "CONTRACT_SUBMIT", "CONTRACT_APPROVE",
+    "PARTNER_VIEW", "PARTNER_MANAGE",
+    "BUDGET_VIEW",
+    "ALERT_VIEW", "ALERT_RESOLVE"
+  ],
+  FINANCE: [
+    "CONTRACT_VIEW",
+    "BUDGET_VIEW", "BUDGET_MANAGE",
+    "ALERT_VIEW"
+  ],
+  LEGAL: [
+    "CONTRACT_VIEW",
+    "ALERT_VIEW"
+  ],
+  PROCUREMENT: [
+    "CONTRACT_VIEW",
+    "ALERT_VIEW"
+  ],
+  LEADERSHIP: [
+    "CONTRACT_VIEW",
+    "BUDGET_VIEW",
+    "ALERT_VIEW"
+  ]
+};
+
+export function hasPermission(role: Role, permission: Permission): boolean {
+  return ROLE_PERMISSIONS[role]?.includes(permission) ?? false;
+}

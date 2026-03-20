@@ -1,56 +1,57 @@
-import type { ReactNode } from "react";
 
-interface DataTableProps {
-  columns: string[];
-  rows: Array<Array<ReactNode>>;
+export interface Column<T> {
+  header: string;
+  accessor: (row: T) => React.ReactNode;
+  width?: string;
 }
 
-export function DataTable({ columns, rows }: DataTableProps) {
+interface DataTableProps<T> {
+  data: T[];
+  columns: Column<T>[];
+  onRowClick?: (row: T) => void;
+}
+
+export function DataTable<T>({ data, columns, onRowClick }: DataTableProps<T>) {
   return (
-    <div style={{ overflowX: "auto", borderRadius: "var(--radius-md)", border: "1px solid var(--line)", background: "var(--surface)" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "600px" }}>
-        <thead>
-          <tr style={{ background: "var(--bg-1)" }}>
-            {columns.map((column) => (
+    <div className="w-full overflow-auto rounded-md border border-gray-200">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50/50">
+          <tr className="border-b border-gray-200 transition-colors">
+            {columns.map((column, i) => (
               <th
-                key={column}
-                style={{
-                  textAlign: "left",
-                  padding: "12px 16px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  color: "var(--muted)",
-                  borderBottom: "1px solid var(--line)"
-                }}
+                key={i}
+                className="h-10 px-4 text-left align-middle font-medium text-gray-500"
+                style={{ width: column.width }}
               >
-                {column}
+                {column.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
-          {rows.map((row, rowIndex) => (
-            <tr key={`row-${rowIndex}`} style={{ transition: "background 150ms ease" }}>
-              {row.map((cell, cellIndex) => (
-                <td
-                  key={`cell-${rowIndex}-${cellIndex}`}
-                  style={{ 
-                    padding: "14px 16px", 
-                    borderBottom: rowIndex === rows.length - 1 ? "none" : "1px solid var(--line)", 
-                    color: "var(--text)", 
-                    fontSize: "14px" 
-                  }}
-                >
-                  {cell}
-                </td>
-              ))}
+        <tbody className="divide-y divide-gray-200">
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="h-24 text-center text-gray-500">
+                Không có dữ liệu.
+              </td>
             </tr>
-          ))}
+          ) : (
+            data.map((row, rowIndex) => (
+              <tr
+                key={rowIndex}
+                onClick={() => onRowClick?.(row)}
+                className={`transition-colors hover:bg-gray-50/50 ${onRowClick ? "cursor-pointer" : ""}`}
+              >
+                {columns.map((column, colIndex) => (
+                  <td key={colIndex} className="p-4 align-middle">
+                    {column.accessor(row)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 }
-

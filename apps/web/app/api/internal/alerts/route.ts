@@ -1,17 +1,41 @@
-import type { Role } from "@contract/shared";
 import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, requireSession } from "../../../../src/server/internal-api";
 import { createAlertsService } from "../../../../src/server/services";
+import { requireSession, handleRouteError } from "../../../../src/server/internal-api";
+import { hasPermission } from "@contract/shared";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALERT_READ_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP"];
-
 export async function GET(request: NextRequest) {
   try {
-    const user = await requireSession(request, ALERT_READ_ROLES);
-    return NextResponse.json(await createAlertsService().list(user));
+    const session = await requireSession(request);
+
+    if (!hasPermission(session.role, "ALERT_VIEW")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const alertsService = createAlertsService();
+    const alerts = await alertsService.list({
+      id: session.id,
+      role: session.role as any
+    });
+
+    return NextResponse.json(alerts);
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await requireSession(request);
+    const alertsService = createAlertsService();
+    
+    await alertsService.syncContractExpiryAlerts();
+    await alertsService.syncBudgetOverageAlerts();
+    await alertsService.syncMissingDocumentAlerts();
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return handleRouteError(error);
   }

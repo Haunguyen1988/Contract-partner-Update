@@ -121,6 +121,11 @@ export const dashboardTaskSchema = z.object({
   severity: alertSeveritySchema
 });
 
+export const updateContractStatusSchema = z.object({
+  action: z.enum(["submit", "approve", "reject"]),
+  reason: z.string().trim().nullish()
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
@@ -134,3 +139,4 @@ export type ContractDocumentMetadataInput = z.infer<typeof contractDocumentMetad
 export type AppSettingsInput = z.infer<typeof appSettingsSchema>;
 export type CsvImportInput = z.infer<typeof csvImportSchema>;
 export type AlertResolutionInput = z.infer<typeof alertResolutionSchema>;
+export type UpdateContractStatusInput = z.infer<typeof updateContractStatusSchema>;

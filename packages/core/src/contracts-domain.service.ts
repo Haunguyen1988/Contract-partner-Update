@@ -219,6 +219,69 @@ export class ContractsDomainService {
     return this.findOne(contractId);
   }
 
+  async submitForApproval(contractId: string, changedById: string) {
+    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
+    if (!contract) throw new DomainNotFoundError("Khong tim thay hop dong.");
+    if (contract.lifecycleStatus !== "DRAFT" && contract.lifecycleStatus !== "REJECTED") {
+      throw new DomainRuleError("Chi co the gui duyet hop dong Nhap hoac Bi tu choi.");
+    }
+
+    await this.prisma.contract.update({
+      where: { id: contractId },
+      data: { lifecycleStatus: "PENDING_APPROVAL" }
+    });
+
+    await this.auditLogger.log({
+      entityType: "CONTRACT",
+      entityId: contractId,
+      action: "SUBMIT_APPROVAL",
+      changedById,
+      diffSummary: { lifecycleStatus: "PENDING_APPROVAL" }
+    });
+
+    return this.findOne(contractId);
+  }
+
+  async approve(contractId: string, changedById: string) {
+    const contract = await this.prisma.contract.findUnique({
+      where: { id: contractId },
+      include: { documents: { select: { type: true } } }
+    });
+
+    if (!contract) throw new DomainNotFoundError("Khong tim thay hop dong.");
+    if (contract.lifecycleStatus !== "PENDING_APPROVAL") {
+      throw new DomainRuleError("Hop dong khong o trang thai cho duyet.");
+    }
+
+    // Reuse activation logic if it meets all criteria
+    return this.activate(contractId, changedById);
+  }
+
+  async reject(contractId: string, reason: string, changedById: string) {
+    const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
+    if (!contract) throw new DomainNotFoundError("Khong tim thay hop dong.");
+
+    await this.prisma.contract.update({
+      where: { id: contractId },
+      data: {
+        lifecycleStatus: "REJECTED",
+        rejectionReason: reason,
+        rejectedAt: new Date(),
+        rejectedById: changedById
+      }
+    });
+
+    await this.auditLogger.log({
+      entityType: "CONTRACT",
+      entityId: contractId,
+      action: "REJECT_CONTRACT",
+      changedById,
+      diffSummary: { lifecycleStatus: "REJECTED", reason }
+    });
+
+    return this.findOne(contractId);
+  }
+
   async archive(contractId: string, changedById: string) {
     const contract = await this.prisma.contract.findUnique({ where: { id: contractId } });
 
