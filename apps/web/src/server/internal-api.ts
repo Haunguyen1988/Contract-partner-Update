@@ -30,6 +30,17 @@ export class RouteHttpError extends Error {
   }
 }
 
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET is not defined in production environment.");
+    }
+    return "change-me-in-production";
+  }
+  return secret;
+}
+
 export function createJwtToken(payload: Omit<JwtPayload, "exp">, expiresInSeconds = 8 * 60 * 60) {
   const headerSegment = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payloadSegment = Buffer.from(
@@ -39,7 +50,7 @@ export function createJwtToken(payload: Omit<JwtPayload, "exp">, expiresInSecond
     })
   ).toString("base64url");
 
-  const signatureSegment = createHmac("sha256", process.env.JWT_SECRET ?? "change-me-in-production")
+  const signatureSegment = createHmac("sha256", getJwtSecret())
     .update(`${headerSegment}.${payloadSegment}`)
     .digest("base64url");
 
@@ -86,7 +97,7 @@ export async function requireSession(
   }
 
   const token = authHeader.slice("Bearer ".length);
-  const payload = verifyJwtToken(token, process.env.JWT_SECRET ?? "change-me-in-production");
+  const payload = verifyJwtToken(token, getJwtSecret());
 
   if (!payload.sub) {
     throw new RouteHttpError(401, "Token khong hop le.");
@@ -123,7 +134,15 @@ export async function parseJsonBody<TSchema extends ZodTypeAny>(
   request: NextRequest,
   schema: TSchema
 ): Promise<output<TSchema>> {
-  return schema.parse(await request.json());
+  try {
+    const body = await request.clone().json();
+    return schema.parse(body);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new RouteHttpError(400, "Du lieu JSON khong hop le hoac bi thieu.");
+    }
+    throw error;
+  }
 }
 
 export function handleRouteError(error: unknown) {

@@ -10,11 +10,24 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const payload = await parseJsonBody(request, loginSchema);
-    const user = await prisma.user.findUnique({ where: { email: payload.email } });
+    console.log(`[Auth] Attempting login for: ${payload.email}`);
 
-    if (!user || user.status !== "ACTIVE") {
+    const user = await prisma.user.findUnique({ 
+      where: { email: payload.email } 
+    });
+
+    if (!user) {
+      console.warn(`[Auth] Login failed: User not found (${payload.email})`);
       return NextResponse.json(
-        { message: "Tai khoan khong hop le hoac da bi khoa." },
+        { message: "Email hoac mat khau khong dung." },
+        { status: 401 }
+      );
+    }
+
+    if (user.status !== "ACTIVE") {
+      console.warn(`[Auth] Login failed: User is inactive (${payload.email})`);
+      return NextResponse.json(
+        { message: "Tai khoan da bi khoa hoac chua kich hoat." },
         { status: 401 }
       );
     }
@@ -22,6 +35,7 @@ export async function POST(request: NextRequest) {
     const isMatch = await bcrypt.compare(payload.password, user.passwordHash);
 
     if (!isMatch) {
+      console.warn(`[Auth] Login failed: Password mismatch (${payload.email})`);
       return NextResponse.json(
         { message: "Email hoac mat khau khong dung." },
         { status: 401 }
@@ -32,6 +46,8 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: { lastLoginAt: new Date() }
     });
+
+    console.log(`[Auth] Login successful: ${user.email} (ID: ${user.id})`);
 
     const accessToken = createJwtToken({
       sub: user.id,
@@ -52,6 +68,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
+    console.error(`[Auth] Unexpected error during login process:`, error);
     return handleRouteError(error);
   }
 }
