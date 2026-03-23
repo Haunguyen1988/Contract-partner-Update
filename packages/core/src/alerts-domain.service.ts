@@ -123,4 +123,65 @@ export class AlertsDomainService {
       });
     }
   }
+
+  async syncBudgetOverageAlerts() {
+    const budgets = await this.prisma.budgetAllocation.findMany({
+      include: { owner: { select: { fullName: true } } }
+    });
+
+    for (const budget of budgets) {
+      const usagePercent = budget.allocatedAmount.isZero() ? 0 : Number(budget.committedAmount.div(budget.allocatedAmount)) * 100;
+      
+      if (usagePercent >= 100) {
+        const fingerprint = `budget-overage:${budget.id}:${budget.fiscalYear}`;
+        await this.prisma.alert.upsert({
+          where: { fingerprint },
+          update: { severity: "CRITICAL", message: `Ngân sách ${budget.campaign} (${budget.fiscalYear}) của ${budget.owner.fullName} đã hết (${usagePercent.toFixed(1)}%).` },
+          create: {
+            fingerprint,
+            type: "BUDGET_OVERAGE",
+            severity: "CRITICAL",
+            status: "OPEN",
+            entityType: "BUDGET",
+            entityId: budget.id,
+            title: `Vượt ngân sách: ${budget.campaign}`,
+            message: `Ngân sách ${budget.campaign} (${budget.fiscalYear}) của ${budget.owner.fullName} đã hết (${usagePercent.toFixed(1)}%).`,
+            dueDate: new Date(),
+            assignedRole: "FINANCE"
+          }
+        });
+      }
+    }
+  }
+
+  async syncMissingDocumentAlerts() {
+    const contracts = await this.prisma.contract.findMany({
+      where: { lifecycleStatus: { in: ["ACTIVE", "PENDING_ACTIVATION", "PENDING_APPROVAL"] } },
+      include: { documents: { select: { type: true } } }
+    });
+
+    for (const contract of contracts) {
+      const hasMain = contract.documents.some(d => d.type === "MAIN_CONTRACT");
+      if (!hasMain) {
+        const fingerprint = `missing-doc:${contract.id}:MAIN_CONTRACT`;
+        await this.prisma.alert.upsert({
+          where: { fingerprint },
+          update: {},
+          create: {
+            fingerprint,
+            type: "MISSING_DOCUMENT",
+            severity: "WARNING",
+            status: "OPEN",
+            entityType: "CONTRACT",
+            entityId: contract.id,
+            contractId: contract.id,
+            title: `Thiếu hồ sơ pháp lý: ${contract.contractNo}`,
+            message: `Hợp đồng "${contract.title}" đang thiếu tài liệu "Hợp đồng chính" (MAIN_CONTRACT).`,
+            dueDate: new Date(),
+            assignedRole: "PR_COR_STAFF"
+          }
+        });
+      }
+    }
+  }
 }

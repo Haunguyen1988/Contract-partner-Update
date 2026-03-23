@@ -14,8 +14,10 @@ export const userStatusValues = ["ACTIVE", "INACTIVE", "INVITED"] as const;
 export const partnerStatusValues = ["ACTIVE", "INACTIVE", "ARCHIVED"] as const;
 export const contractLifecycleStatusValues = [
   "DRAFT",
+  "PENDING_APPROVAL",
   "PENDING_ACTIVATION",
   "ACTIVE",
+  "REJECTED",
   "EXPIRED",
   "TERMINATED",
   "LIQUIDATED",
