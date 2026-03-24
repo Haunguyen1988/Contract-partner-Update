@@ -1,11 +1,11 @@
-import { Body, CanActivate, Controller, ExecutionContext, ForbiddenException, Get, Global, Injectable, Module, Post, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { CanActivate, Controller, ExecutionContext, ForbiddenException, Get, Global, Injectable, Module, Post, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule, JwtService } from "@nestjs/jwt";
 import bcrypt from "bcryptjs";
 import { loginSchema, type LoginInput } from "@contract/shared";
 import { PrismaService } from "../../common/prisma.service";
-import { parseOrThrow } from "../../common/zod";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
+import { ValidatedBody } from "../../common/validated-body.decorator";
 
 @Injectable()
 export class AuthService {
@@ -122,8 +122,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("login")
-  login(@Body() payload: unknown) {
-    return this.authService.login(parseOrThrow(loginSchema, payload));
+  login(@ValidatedBody(loginSchema) payload: LoginInput) {
+    return this.authService.login(payload);
   }
 
   @Post("bootstrap-admin")

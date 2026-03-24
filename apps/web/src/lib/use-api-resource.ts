@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { ApiError, ResourceSource } from "./api";
-import { fetchWithFallback } from "./api";
+import { useEffect, useRef, useState } from "react";
+import type { ResourceSource } from "./api";
+import { ApiError, fetchWithFallback, isAbortError } from "./api";
 import { useSession } from "./session";
 
 interface UseApiResourceOptions {
@@ -11,6 +11,7 @@ interface UseApiResourceOptions {
 
 export function useApiResource<T>(path: string, fallback: T, options?: UseApiResourceOptions) {
   const { token } = useSession();
+  const requestIdRef = useRef(0);
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
@@ -18,21 +19,45 @@ export function useApiResource<T>(path: string, fallback: T, options?: UseApiRes
 
   const allowFallback = options?.allowFallback;
 
-  async function load() {
+  async function load(signal?: AbortSignal) {
+    const requestId = ++requestIdRef.current;
+
     if (data === null) {
       setSource("loading");
     }
 
     setLoading(true);
-    const next = await fetchWithFallback(path, token, fallback, allowFallback);
-    setData((current) => next.data ?? current);
-    setError(next.error);
-    setSource(next.source);
-    setLoading(false);
+    try {
+      const next = await fetchWithFallback(path, token, fallback, allowFallback, signal);
+
+      if (signal?.aborted || requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setData((current) => next.data ?? current);
+      setError(next.error);
+      setSource(next.source);
+    } catch (error) {
+      if (isAbortError(error) || requestId !== requestIdRef.current) {
+        return;
+      }
+
+      setError(error instanceof ApiError ? error : new ApiError("Request failed unexpectedly."));
+      setSource("unavailable");
+    } finally {
+      if (!signal?.aborted && requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
   }
 
   useEffect(() => {
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, [allowFallback, path, token]);
 
   return {

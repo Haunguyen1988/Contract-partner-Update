@@ -1,20 +1,21 @@
 import type { Role } from "@contract/shared";
 import { csvImportSchema } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseJsonBody, requireSession } from "../../../../../../src/server/internal-api";
-import { createImportsService } from "../../../../../../src/server/services";
+import {
+  defineAuthorizedRoute,
+  parseJsonBody
+} from "../../../../../../src/server/internal-api";
+import { importsService } from "../../../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../../../src/server/internal-api";
 
 const IMPORT_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF"];
 
-export async function POST(request: NextRequest) {
-  try {
-    await requireSession(request, IMPORT_ROLES);
-    const payload = await parseJsonBody(request, csvImportSchema);
-    return NextResponse.json(await createImportsService().validatePartnerCsv(payload));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = defineAuthorizedRoute(
+  IMPORT_ROLES,
+  async ({ request }) => importsService.validatePartnerCsv(
+    await parseJsonBody(request, csvImportSchema)
+  )
+);

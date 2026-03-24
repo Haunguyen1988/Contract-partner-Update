@@ -1,0 +1,21 @@
+import { AppShell } from "@/components/app-shell";
+import { DataTableCard } from "@/components/data-table-card";
+import { getDataset } from "@/lib/api";
+
+export default async function ContractsPage() {
+  const contracts = await getDataset("contracts");
+
+  return (
+    <AppShell
+      currentPath="/contracts"
+      title="Quan ly hop dong"
+      description="Starter page cho registry hop dong. Hien tai hien thi du lieu tho de team chot schema va luong duyet truoc khi build form nghiep vu."
+    >
+      <DataTableCard
+        title="Danh sach hop dong"
+        description="Nguon du lieu: bang contracts qua FastAPI."
+        dataset={contracts}
+      />
+    </AppShell>
+  );
+}

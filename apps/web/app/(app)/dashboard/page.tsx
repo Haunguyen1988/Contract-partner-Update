@@ -2,40 +2,34 @@
 
 import { Badge, Card, DataTable, MetricCard, ProgressBar } from "@contract/ui";
 import { PageHeader } from "../../../src/components/page-header";
-import { ResourceState } from "../../../src/components/resource-state";
+import { ResourceGuard } from "../../../src/components/resource-guard";
 import { formatCurrency, formatDate } from "../../../src/lib/format";
 import { mockDashboard } from "../../../src/lib/mocks";
+import { getResourcePageState } from "../../../src/lib/resource";
 import { useApiResource } from "../../../src/lib/use-api-resource";
 
 export default function DashboardPage() {
   const resource = useApiResource("/api/internal/dashboard/overview", mockDashboard);
-  const { error, loading, source, usingFallback } = resource;
+  const { loading } = resource;
   const data = resource.data ?? mockDashboard;
-
-  if (source === "loading") {
-    return <ResourceState source={source} label="dashboard điều hành" />;
-  }
-
-  if (source === "unavailable" && !resource.data) {
-    return <ResourceState source="unavailable" label="dashboard điều hành" error={error?.message ?? null} />;
-  }
+  const pageState = getResourcePageState([resource]);
 
   return (
-    <div className="stack">
-      {usingFallback ? <ResourceState source="fallback" label="dashboard điều hành" error={error?.message ?? null} /> : null}
-      <section className="hero panel" style={{ background: "var(--bg-0)", border: "1px solid var(--line)", padding: 32, boxShadow: "none" }}>
-        <PageHeader
-          title="Tổng quan điều hành"
-          description="Theo dõi hợp đồng active, cảnh báo mở, ngân sách cam kết và các việc ưu tiên xử lý trong ngày."
-          actions={<Badge tone={loading ? "warning" : "success"}>{loading ? "Đang tải dữ liệu" : "Sẵn sàng"}</Badge>}
-        />
-        <div className="grid-4">
-          <MetricCard label="Hợp đồng active" value={String(data.summary.activeContracts)} caption="Nguồn dữ liệu tập trung" />
-          <MetricCard label="Sắp hết hạn" value={String(data.summary.expiringContracts)} caption="Cần xử lý trong chu kỳ hiện tại" />
-          <MetricCard label="Cảnh báo mở" value={String(data.summary.openAlerts)} caption="In-app reminder cho team" />
-          <MetricCard label="Ngân sách còn lại" value={data.summary.totalRemainingBudget} caption="Theo owner và fiscal year" />
-        </div>
-      </section>
+    <ResourceGuard label="dashboard điều hành" state={pageState}>
+      <div className="stack">
+        <section className="hero panel" style={{ background: "var(--bg-0)", border: "1px solid var(--line)", padding: 32, boxShadow: "none" }}>
+          <PageHeader
+            title="Tổng quan điều hành"
+            description="Theo dõi hợp đồng active, cảnh báo mở, ngân sách cam kết và các việc ưu tiên xử lý trong ngày."
+            actions={<Badge tone={loading ? "warning" : "success"}>{loading ? "Đang tải dữ liệu" : "Sẵn sàng"}</Badge>}
+          />
+          <div className="grid-4">
+            <MetricCard label="Hợp đồng active" value={String(data.summary.activeContracts)} caption="Nguồn dữ liệu tập trung" />
+            <MetricCard label="Sắp hết hạn" value={String(data.summary.expiringContracts)} caption="Cần xử lý trong chu kỳ hiện tại" />
+            <MetricCard label="Cảnh báo mở" value={String(data.summary.openAlerts)} caption="In-app reminder cho team" />
+            <MetricCard label="Ngân sách còn lại" value={data.summary.totalRemainingBudget} caption="Theo owner và fiscal year" />
+          </div>
+        </section>
 
       <div className="grid-2">
         <Card title="Phân bổ ngân sách theo Owner" eyebrow="Budget usage">
@@ -89,6 +83,7 @@ export default function DashboardPage() {
           ])}
         />
       </Card>
-    </div>
+      </div>
+    </ResourceGuard>
   );
 }

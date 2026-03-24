@@ -1,11 +1,15 @@
 import type { Role } from "@contract/shared";
 import { createContractSchema } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseJsonBody, requireSession } from "../../../../src/server/internal-api";
-import { createContractsService } from "../../../../src/server/services";
+import {
+  defineAuthorizedRoute,
+  parseJsonBody
+} from "../../../../src/server/internal-api";
+import { contractsService } from "../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../src/server/internal-api";
 
 const CONTRACT_READ_ROLES: Role[] = [
   "ADMIN",
@@ -19,21 +23,15 @@ const CONTRACT_READ_ROLES: Role[] = [
 
 const CONTRACT_WRITE_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF"];
 
-export async function GET(request: NextRequest) {
-  try {
-    await requireSession(request, CONTRACT_READ_ROLES);
-    return NextResponse.json(await createContractsService().list());
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const GET = defineAuthorizedRoute(
+  CONTRACT_READ_ROLES,
+  async () => contractsService.list()
+);
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await requireSession(request, CONTRACT_WRITE_ROLES);
-    const payload = await parseJsonBody(request, createContractSchema);
-    return NextResponse.json(await createContractsService().create(payload, user.id));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = defineAuthorizedRoute(
+  CONTRACT_WRITE_ROLES,
+  async ({ request, user }) => contractsService.create(
+    await parseJsonBody(request, createContractSchema),
+    user.id
+  )
+);

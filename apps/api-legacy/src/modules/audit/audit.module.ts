@@ -1,6 +1,8 @@
 import { Controller, Get, Module, UseGuards } from "@nestjs/common";
+import { toIsoDateString } from "@contract/shared";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import { AUDIT_READ_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
 import { JwtAuthGuard } from "../auth/auth.module";
@@ -10,7 +12,7 @@ import { JwtAuthGuard } from "../auth/auth.module";
 export class AuditController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP")
+  @Roles(...AUDIT_READ_ROLES)
   @Get()
   async list(@CurrentUser() currentUser: AuthenticatedUser) {
     const logs = await this.prisma.auditLog.findMany({
@@ -31,7 +33,7 @@ export class AuditController {
       entityType: log.entityType,
       entityId: log.entityId,
       action: log.action,
-      changedAt: log.changedAt.toISOString(),
+      changedAt: toIsoDateString(log.changedAt),
       changedBy: log.changedBy?.fullName ?? null,
       diffSummary: log.diffSummary
     }));

@@ -1,5 +1,6 @@
 import {
   daysUntil,
+  toIsoDateString,
   type AlertResolutionInput
 } from "@contract/shared";
 import type { AlertsPrismaClient, AuditLogger, ServiceActor, SettingsReader } from "./types";
@@ -47,7 +48,7 @@ export class AlertsDomainService {
       entityId: alert.entityId,
       title: alert.title,
       message: alert.message,
-      dueDate: alert.dueDate.toISOString(),
+      dueDate: toIsoDateString(alert.dueDate),
       assignedRole: alert.assignedRole,
       contractNo: alert.contract?.contractNo ?? null
     }));

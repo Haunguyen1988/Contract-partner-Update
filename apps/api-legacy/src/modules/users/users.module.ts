@@ -1,12 +1,18 @@
-import { Body, Controller, Get, Injectable, Module, NotFoundException, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Controller, Get, Injectable, Module, NotFoundException, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import bcrypt from "bcryptjs";
-import { createUserSchema, updateUserSchema } from "@contract/shared";
+import {
+  createUserSchema,
+  type CreateUserInput,
+  type UpdateUserInput,
+  updateUserSchema
+} from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
+import { ADMIN_MANAGER_ROLES, ADMIN_ONLY_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
 import { PrismaService } from "../../common/prisma.service";
-import { parseOrThrow } from "../../common/zod";
+import { ValidatedBody } from "../../common/validated-body.decorator";
 import { JwtAuthGuard } from "../auth/auth.module";
 
 @Injectable()
@@ -31,8 +37,7 @@ export class UsersService {
     });
   }
 
-  async create(payload: unknown, currentUser: AuthenticatedUser) {
-    const input = parseOrThrow(createUserSchema, payload);
+  async create(input: CreateUserInput, currentUser: AuthenticatedUser) {
     const passwordHash = await bcrypt.hash(input.password, 10);
 
     const user = await this.prisma.user.create({
@@ -65,14 +70,13 @@ export class UsersService {
     return user;
   }
 
-  async update(userId: string, payload: unknown, currentUser: AuthenticatedUser) {
+  async update(userId: string, input: UpdateUserInput, currentUser: AuthenticatedUser) {
     const existing = await this.prisma.user.findUnique({ where: { id: userId } });
 
     if (!existing) {
       throw new NotFoundException("Không tìm thấy user.");
     }
 
-    const input = parseOrThrow(updateUserSchema, payload);
     const passwordHash = input.password ? await bcrypt.hash(input.password, 10) : undefined;
 
     const user = await this.prisma.user.update({
@@ -112,21 +116,25 @@ export class UsersService {
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER")
+  @Roles(...ADMIN_MANAGER_ROLES)
   @Get()
   list() {
     return this.usersService.list();
   }
 
-  @Roles("ADMIN")
+  @Roles(...ADMIN_ONLY_ROLES)
   @Post()
-  create(@Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
+  create(@ValidatedBody(createUserSchema) payload: CreateUserInput, @CurrentUser() currentUser: AuthenticatedUser) {
     return this.usersService.create(payload, currentUser);
   }
 
-  @Roles("ADMIN")
+  @Roles(...ADMIN_ONLY_ROLES)
   @Patch(":id")
-  update(@Param("id") userId: string, @Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
+  update(
+    @Param("id") userId: string,
+    @ValidatedBody(updateUserSchema) payload: UpdateUserInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
     return this.usersService.update(userId, payload, currentUser);
   }
 }

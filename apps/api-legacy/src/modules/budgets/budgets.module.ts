@@ -1,18 +1,18 @@
-import { Body, Controller, Get, Injectable, Module, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Controller, Get, Injectable, Module, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { BudgetsDomainService } from "@contract/core";
 import {
   createBudgetAllocationSchema,
-  updateBudgetAllocationSchema,
   type CreateBudgetAllocationInput,
-  type UpdateBudgetAllocationInput
+  type UpdateBudgetAllocationInput,
+  updateBudgetAllocationSchema
 } from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
-import { rethrowDomainError } from "../../common/domain-error";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import { BUDGET_READ_ROLES, FINANCE_MANAGER_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
-import { parseOrThrow } from "../../common/zod";
+import { ValidatedBody } from "../../common/validated-body.decorator";
 import { JwtAuthGuard } from "../auth/auth.module";
 
 @Injectable()
@@ -23,34 +23,6 @@ export class BudgetsService extends BudgetsDomainService {
   ) {
     super(prisma, auditService);
   }
-
-  override async list() {
-    try {
-      return await super.list();
-    } catch (error) {
-      rethrowDomainError(error);
-    }
-  }
-
-  override async upsert(input: CreateBudgetAllocationInput, changedById: string) {
-    try {
-      return await super.upsert(input, changedById);
-    } catch (error) {
-      rethrowDomainError(error);
-    }
-  }
-
-  override async update(
-    budgetId: string,
-    input: UpdateBudgetAllocationInput,
-    changedById: string
-  ) {
-    try {
-      return await super.update(budgetId, input, changedById);
-    } catch (error) {
-      rethrowDomainError(error);
-    }
-  }
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -58,22 +30,29 @@ export class BudgetsService extends BudgetsDomainService {
 export class BudgetsController {
   constructor(private readonly budgetsService: BudgetsService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "FINANCE", "LEADERSHIP")
+  @Roles(...BUDGET_READ_ROLES)
   @Get()
   list() {
     return this.budgetsService.list();
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "FINANCE")
+  @Roles(...FINANCE_MANAGER_ROLES)
   @Post()
-  upsert(@Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
-    return this.budgetsService.upsert(parseOrThrow(createBudgetAllocationSchema, payload), currentUser.id);
+  upsert(
+    @ValidatedBody(createBudgetAllocationSchema) payload: CreateBudgetAllocationInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
+    return this.budgetsService.upsert(payload, currentUser.id);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "FINANCE")
+  @Roles(...FINANCE_MANAGER_ROLES)
   @Patch(":id")
-  update(@Param("id") budgetId: string, @Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
-    return this.budgetsService.update(budgetId, parseOrThrow(updateBudgetAllocationSchema, payload), currentUser.id);
+  update(
+    @Param("id") budgetId: string,
+    @ValidatedBody(updateBudgetAllocationSchema) payload: UpdateBudgetAllocationInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
+    return this.budgetsService.update(budgetId, payload, currentUser.id);
   }
 }
 

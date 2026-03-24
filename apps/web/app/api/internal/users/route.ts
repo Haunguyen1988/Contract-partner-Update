@@ -1,42 +1,39 @@
 import bcrypt from "bcryptjs";
 import { createUserSchema, type Role } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseJsonBody, requireSession } from "../../../../src/server/internal-api";
+import {
+  defineAuthorizedRoute,
+  parseJsonBody
+} from "../../../../src/server/internal-api";
 import { prisma } from "../../../../src/server/prisma";
 import { auditLogger } from "../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../src/server/internal-api";
 
 const USER_LIST_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER"];
 const USER_WRITE_ROLES: Role[] = ["ADMIN"];
 
-export async function GET(request: NextRequest) {
-  try {
-    await requireSession(request, USER_LIST_ROLES);
+export const GET = defineAuthorizedRoute(
+  USER_LIST_ROLES,
+  async () => prisma.user.findMany({
+    orderBy: { fullName: "asc" },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      department: true,
+      status: true,
+      lastLoginAt: true
+    }
+  })
+);
 
-    const users = await prisma.user.findMany({
-      orderBy: { fullName: "asc" },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        department: true,
-        status: true,
-        lastLoginAt: true
-      }
-    });
-
-    return NextResponse.json(users);
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const currentUser = await requireSession(request, USER_WRITE_ROLES);
+export const POST = defineAuthorizedRoute(
+  USER_WRITE_ROLES,
+  async ({ request, user: currentUser }) => {
     const input = await parseJsonBody(request, createUserSchema);
     const passwordHash = await bcrypt.hash(input.password, 10);
 
@@ -67,8 +64,6 @@ export async function POST(request: NextRequest) {
       diffSummary: { email: user.email, role: user.role }
     });
 
-    return NextResponse.json(user);
-  } catch (error) {
-    return handleRouteError(error);
+    return user;
   }
-}
+);

@@ -1,15 +1,11 @@
 import { Controller, Get, Injectable, Module, UseGuards } from "@nestjs/common";
-import { formatVnd, daysUntil } from "@contract/shared";
-import { Prisma } from "@prisma/client";
+import { daysUntil, formatVnd, toIsoDateString, toNumber } from "@contract/shared";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import { BUSINESS_READ_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
 import { JwtAuthGuard } from "../auth/auth.module";
-
-function decimalToNumber(value: Prisma.Decimal | number | string | null | undefined): number {
-  return Number(value ?? 0);
-}
 
 @Injectable()
 export class DashboardService {
@@ -75,8 +71,8 @@ export class DashboardService {
       take: 6
     });
 
-    const totalCommittedBudget = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.committedAmount), 0);
-    const totalRemainingBudget = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.remainingAmount), 0);
+    const totalCommittedBudget = budgets.reduce((sum, budget) => sum + toNumber(budget.committedAmount), 0);
+    const totalRemainingBudget = budgets.reduce((sum, budget) => sum + toNumber(budget.remainingAmount), 0);
 
     return {
       summary: {
@@ -98,14 +94,14 @@ export class DashboardService {
         title: contract.title,
         ownerName: contract.owner.fullName,
         partnerName: contract.partner.legalName,
-        endDate: contract.endDate.toISOString(),
+        endDate: toIsoDateString(contract.endDate),
         daysRemaining: daysUntil(contract.endDate)
       })),
       myTasks: myTasks.map((alert) => ({
         id: alert.id,
         title: alert.title,
         description: alert.message,
-        dueDate: alert.dueDate.toISOString(),
+        dueDate: toIsoDateString(alert.dueDate),
         severity: alert.severity
       }))
     };
@@ -117,7 +113,7 @@ export class DashboardService {
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP")
+  @Roles(...BUSINESS_READ_ROLES)
   @Get("overview")
   getOverview(@CurrentUser() currentUser: AuthenticatedUser) {
     return this.dashboardService.getOverview(currentUser);

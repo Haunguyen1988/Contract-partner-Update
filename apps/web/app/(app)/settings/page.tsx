@@ -1,77 +1,89 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Card } from "@contract/ui";
+import { ActionFeedback } from "../../../src/components/action-feedback";
+import { AsyncActionButton } from "../../../src/components/async-action-button";
 import { IntegrationStatus } from "../../../src/components/integration-status";
 import { PageHeader } from "../../../src/components/page-header";
-import { ResourceState } from "../../../src/components/resource-state";
+import { ResourceGuard } from "../../../src/components/resource-guard";
 import { apiRequest } from "../../../src/lib/api";
+import { useAsyncAction } from "../../../src/lib/async-action";
+import { useFormState } from "../../../src/lib/form-state";
 import { mockSettings } from "../../../src/lib/mocks";
+import { getResourcePageState } from "../../../src/lib/resource";
 import { useSession } from "../../../src/lib/session";
 import { useApiResource } from "../../../src/lib/use-api-resource";
+
+function parseExpiryLeadDays(input: string) {
+  return input
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => !Number.isNaN(item));
+}
 
 export default function SettingsPage() {
   const { token } = useSession();
   const settingsResource = useApiResource("/api/internal/settings", mockSettings);
   const data = settingsResource.data ?? mockSettings;
-  const [policy, setPolicy] = useState(mockSettings.budgetOverrunPolicy);
-  const [leadDays, setLeadDays] = useState(mockSettings.expiryLeadDays.join(","));
-  const [status, setStatus] = useState("");
+  const settingsForm = useFormState({
+    policy: mockSettings.budgetOverrunPolicy,
+    leadDays: mockSettings.expiryLeadDays.join(",")
+  });
+  const saveSettingsAction = useAsyncAction();
 
   useEffect(() => {
-    setPolicy(data.budgetOverrunPolicy);
-    setLeadDays(data.expiryLeadDays.join(","));
+    settingsForm.reset({
+      policy: data.budgetOverrunPolicy,
+      leadDays: data.expiryLeadDays.join(",")
+    });
   }, [data]);
-
-  if (settingsResource.source === "loading") {
-    return <ResourceState source="loading" label="cấu hình hệ thống" />;
-  }
-
-  if (settingsResource.source === "unavailable" && !settingsResource.data) {
-    return <ResourceState source="unavailable" label="cấu hình hệ thống" error={settingsResource.error?.message ?? null} />;
-  }
+  const pageState = getResourcePageState([settingsResource]);
 
   return (
-    <Card title="System settings" eyebrow="Admin control">
-      {settingsResource.usingFallback ? <ResourceState source="fallback" label="cấu hình hệ thống" error={settingsResource.error?.message ?? null} /> : null}
-      <IntegrationStatus />
-      <PageHeader title="Cấu hình MVP" description="Hiện tại chỉ mở policy budget overrun và lịch cảnh báo contract expiry." />
-      <div className="form-grid">
-        <div className="field">
-          <label>Budget overrun policy</label>
-          <select value={policy} onChange={(event) => setPolicy(event.target.value as "WARN" | "BLOCK")}>
-            <option value="WARN">WARN</option>
-            <option value="BLOCK">BLOCK</option>
-          </select>
+    <ResourceGuard label="cấu hình hệ thống" state={pageState}>
+      <Card title="System settings" eyebrow="Admin control">
+        <IntegrationStatus />
+        <PageHeader title="Cấu hình MVP" description="Hiện tại chỉ mở policy budget overrun và lịch cảnh báo contract expiry." />
+        <div className="form-grid">
+          <div className="field">
+            <label>Budget overrun policy</label>
+            <select {...settingsForm.bind("policy")}>
+              <option value="WARN">WARN</option>
+              <option value="BLOCK">BLOCK</option>
+            </select>
+          </div>
+          <div className="field">
+            <label>Expiry lead days</label>
+            <input {...settingsForm.bind("leadDays")} />
+          </div>
         </div>
-        <div className="field">
-          <label>Expiry lead days</label>
-          <input value={leadDays} onChange={(event) => setLeadDays(event.target.value)} />
+        <ActionFeedback feedback={saveSettingsAction.feedback} />
+        <div className="button-row">
+          <AsyncActionButton
+            className="button-primary"
+            pending={saveSettingsAction.pending}
+            idleLabel="Lưu cấu hình"
+            pendingLabel="Đang lưu..."
+            onClick={async () => {
+              await saveSettingsAction.run(
+                () => apiRequest("/api/internal/settings", {
+                  method: "PATCH",
+                  body: JSON.stringify({
+                    budgetOverrunPolicy: settingsForm.values.policy,
+                    expiryLeadDays: parseExpiryLeadDays(settingsForm.values.leadDays)
+                  })
+                }, token),
+                {
+                  errorMessage: "Không thể lưu cấu hình.",
+                  successMessage: "Đã cập nhật cấu hình hệ thống.",
+                  onSuccess: () => settingsResource.reload()
+                }
+              );
+            }}
+          />
         </div>
-      </div>
-      <div className={`status-text ${status ? "success" : ""}`}>{status}</div>
-      <div className="button-row">
-        <button
-          className="button-primary"
-          onClick={async () => {
-            try {
-              await apiRequest("/api/internal/settings", {
-                method: "PATCH",
-                body: JSON.stringify({
-                  budgetOverrunPolicy: policy,
-                  expiryLeadDays: leadDays.split(",").map((item) => Number(item.trim())).filter((item) => !Number.isNaN(item))
-                })
-              }, token);
-              setStatus("Đã cập nhật cấu hình hệ thống.");
-              await settingsResource.reload();
-            } catch (error) {
-              setStatus(error instanceof Error ? error.message : "Không thể lưu cấu hình.");
-            }
-          }}
-        >
-          Lưu cấu hình
-        </button>
-      </div>
-    </Card>
+      </Card>
+    </ResourceGuard>
   );
 }

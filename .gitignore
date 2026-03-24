@@ -6,10 +6,19 @@ coverage
 .env
 .env.local
 .env.production
+.venv
+__pycache__
+.pytest_cache
 apps/api/uploads
 packages/db/prisma/dev.db
 packages/db/prisma/dev.db-journal
 *.log
+frontend/node_modules
+frontend/.next
+frontend/out
+backend/.venv
+backend/__pycache__
+backend/.pytest_cache
 
 # Antigravity & Workspace
 .brain/

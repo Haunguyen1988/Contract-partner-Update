@@ -1,6 +1,6 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { ContractDocumentMetadataInput } from "@contract/shared";
+import { toIsoDateString, type ContractDocumentMetadataInput } from "@contract/shared";
 import { DomainNotFoundError, DomainRuleError } from "./errors";
 import type {
   AuditLogger,
@@ -55,7 +55,7 @@ export class DocumentsDomainService {
       mimeType: document.mimeType,
       size: document.size,
       version: document.version,
-      uploadedAt: document.uploadedAt.toISOString()
+      uploadedAt: toIsoDateString(document.uploadedAt)
     }));
   }
 
@@ -113,7 +113,7 @@ export class DocumentsDomainService {
       mimeType: document.mimeType,
       size: document.size,
       version: document.version,
-      uploadedAt: document.uploadedAt.toISOString()
+      uploadedAt: toIsoDateString(document.uploadedAt)
     };
   }
 }

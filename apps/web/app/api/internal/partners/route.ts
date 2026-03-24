@@ -1,11 +1,16 @@
 import { createPartnerSchema, normalizeText, type Role } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { RouteHttpError, handleRouteError, parseJsonBody, requireSession } from "../../../../src/server/internal-api";
+import {
+  RouteHttpError,
+  defineAuthorizedRoute,
+  parseJsonBody
+} from "../../../../src/server/internal-api";
 import { prisma } from "../../../../src/server/prisma";
 import { auditLogger } from "../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../src/server/internal-api";
 
 const PARTNER_LIST_ROLES: Role[] = [
   "ADMIN",
@@ -18,28 +23,21 @@ const PARTNER_LIST_ROLES: Role[] = [
 ];
 const PARTNER_WRITE_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF"];
 
-export async function GET(request: NextRequest) {
-  try {
-    await requireSession(request, PARTNER_LIST_ROLES);
+export const GET = defineAuthorizedRoute(
+  PARTNER_LIST_ROLES,
+  async () => prisma.partner.findMany({
+    where: { status: { not: "ARCHIVED" } },
+    include: {
+      primaryOwner: { select: { id: true, fullName: true, email: true } },
+      backupOwner: { select: { id: true, fullName: true, email: true } }
+    },
+    orderBy: { legalName: "asc" }
+  })
+);
 
-    const partners = await prisma.partner.findMany({
-      where: { status: { not: "ARCHIVED" } },
-      include: {
-        primaryOwner: { select: { id: true, fullName: true, email: true } },
-        backupOwner: { select: { id: true, fullName: true, email: true } }
-      },
-      orderBy: { legalName: "asc" }
-    });
-
-    return NextResponse.json(partners);
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const currentUser = await requireSession(request, PARTNER_WRITE_ROLES);
+export const POST = defineAuthorizedRoute(
+  PARTNER_WRITE_ROLES,
+  async ({ request, user }) => {
     const input = await parseJsonBody(request, createPartnerSchema);
     const contactInfo = input.contactInfo ?? {};
 
@@ -96,12 +94,10 @@ export async function POST(request: NextRequest) {
       entityType: "PARTNER",
       entityId: partner.id,
       action: "CREATE_PARTNER",
-      changedById: currentUser.id,
+      changedById: user.id,
       diffSummary: { legalName: partner.legalName, taxCode: partner.taxCode }
     });
 
-    return NextResponse.json(partner);
-  } catch (error) {
-    return handleRouteError(error);
+    return partner;
   }
-}
+);

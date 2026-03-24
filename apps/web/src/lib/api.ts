@@ -17,6 +17,14 @@ export interface FetchWithFallbackResult<T> {
   source: Exclude<ResourceSource, "loading">;
 }
 
+function isErrorWithName(error: unknown, name: string): error is Error {
+  return error instanceof Error && error.name === name;
+}
+
+export function isAbortError(error: unknown): boolean {
+  return isErrorWithName(error, "AbortError");
+}
+
 export function isMockFallbackEnabled() {
   return MOCK_FALLBACK_ENABLED;
 }
@@ -45,6 +53,51 @@ function resolveRequestUrl(path: string) {
   return `${API_BASE_URL}${path}`;
 }
 
+async function readJsonSafely(response: Response): Promise<unknown | null> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+async function createApiError(response: Response): Promise<ApiError> {
+  const fallbackMessage = `Request failed with status ${response.status}`;
+  const errorPayload = await readJsonSafely(response.clone());
+
+  if (
+    errorPayload &&
+    typeof errorPayload === "object" &&
+    "message" in errorPayload &&
+    typeof errorPayload.message === "string"
+  ) {
+    return new ApiError(errorPayload.message, errorPayload);
+  }
+
+  const responseText = (await response.text()).trim();
+
+  if (responseText) {
+    return new ApiError(responseText, errorPayload ?? responseText);
+  }
+
+  return new ApiError(fallbackMessage, errorPayload);
+}
+
+async function parseResponseBody<T>(response: Response): Promise<T> {
+  if (response.status === 204 || response.status === 205) {
+    return null as T;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType.includes("application/json")) {
+    return response.json() as Promise<T>;
+  }
+
+  const responseText = await response.text();
+  return (responseText || null) as T;
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(init.headers ?? {});
 
@@ -62,32 +115,31 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}, token?
   });
 
   if (!response.ok) {
-    const fallbackMessage = `Request failed with status ${response.status}`;
-    try {
-      const errorPayload = await response.json();
-      throw new ApiError(errorPayload.message ?? fallbackMessage, errorPayload);
-    } catch {
-      throw new ApiError(fallbackMessage);
-    }
+    throw await createApiError(response);
   }
 
-  return response.json() as Promise<T>;
+  return parseResponseBody<T>(response);
 }
 
 export async function fetchWithFallback<T>(
   path: string,
   token: string | null,
   fallback: T,
-  allowFallback = MOCK_FALLBACK_ENABLED
+  allowFallback = MOCK_FALLBACK_ENABLED,
+  signal?: AbortSignal
 ): Promise<FetchWithFallbackResult<T>> {
   try {
-    const data = await apiRequest<T>(path, { method: "GET" }, token);
+    const data = await apiRequest<T>(path, { method: "GET", signal }, token);
     return {
       data,
       error: null,
       source: "api"
     };
   } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+
     const apiError = error instanceof ApiError
       ? error
       : new ApiError(error instanceof Error ? error.message : "Request failed unexpectedly.");

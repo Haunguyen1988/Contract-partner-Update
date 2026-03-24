@@ -1,0 +1,21 @@
+import { AppShell } from "@/components/app-shell";
+import { DataTableCard } from "@/components/data-table-card";
+import { getDataset } from "@/lib/api";
+
+export default async function PartnersPage() {
+  const partners = await getDataset("partners");
+
+  return (
+    <AppShell
+      currentPath="/partners"
+      title="Quan ly doi tac"
+      description="Trang danh sach doi tac co ban. Ban co the bo sung form tao moi, bo loc, phan quyen va dong bo hop dong o buoc tiep theo."
+    >
+      <DataTableCard
+        title="Danh sach doi tac"
+        description="Render dong theo du lieu tra ve tu Supabase, khong ep cung schema cot."
+        dataset={partners}
+      />
+    </AppShell>
+  );
+}

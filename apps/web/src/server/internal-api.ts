@@ -30,6 +30,31 @@ export class RouteHttpError extends Error {
   }
 }
 
+export const INTERNAL_ROUTE_RUNTIME = "nodejs";
+export const INTERNAL_ROUTE_DYNAMIC = "force-dynamic";
+
+type RouteResult = Response | unknown;
+
+export interface AppRouteContext<
+  TParams extends Record<string, string | string[] | undefined> = Record<string, string | string[] | undefined>
+> {
+  params: Promise<TParams>;
+}
+
+interface AuthorizedRouteHandlerContext<TContext> {
+  request: NextRequest;
+  user: InternalSessionUser;
+  context: TContext;
+}
+
+function toRouteResponse(result: RouteResult) {
+  if (result instanceof Response) {
+    return result;
+  }
+
+  return NextResponse.json(result ?? null);
+}
+
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -128,6 +153,34 @@ export async function requireSession(
     fullName: user.fullName,
     role: user.role
   };
+}
+
+export function defineRoute<TContext extends AppRouteContext = AppRouteContext>(
+  handler: (request: NextRequest, context: TContext) => Promise<RouteResult>
+) {
+  return async function route(request: NextRequest, context: TContext) {
+    try {
+      return toRouteResponse(await handler(request, context));
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  };
+}
+
+export function defineAuthorizedRoute<TContext extends AppRouteContext = AppRouteContext>(
+  allowedRoles: readonly Role[] | undefined,
+  handler: (args: AuthorizedRouteHandlerContext<TContext>) => Promise<RouteResult>
+) {
+  return defineRoute<TContext>(async (request, context) => {
+    const user = await requireSession(request, allowedRoles);
+    return handler({ request, user, context });
+  });
+}
+
+export async function resolveRouteParams<TParams>(
+  context: { params: Promise<TParams> | TParams }
+): Promise<TParams> {
+  return await context.params;
 }
 
 export async function parseJsonBody<TSchema extends ZodTypeAny>(

@@ -1,13 +1,14 @@
-import { Body, Controller, Get, Injectable, Module, Param, Patch, UseGuards } from "@nestjs/common";
+import { Controller, Get, Injectable, Module, Param, Patch, UseGuards } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { AlertsDomainService } from "@contract/core";
-import { alertResolutionSchema } from "@contract/shared";
+import { alertResolutionSchema, type AlertResolutionInput } from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import { ALERT_RESOLUTION_ROLES, BUSINESS_READ_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
-import { parseOrThrow } from "../../common/zod";
+import { ValidatedBody } from "../../common/validated-body.decorator";
 import { JwtAuthGuard } from "../auth/auth.module";
 import { SettingsModule, SettingsService } from "../settings/settings.module";
 
@@ -32,16 +33,20 @@ export class AlertsService extends AlertsDomainService {
 export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP")
+  @Roles(...BUSINESS_READ_ROLES)
   @Get()
   list(@CurrentUser() currentUser: AuthenticatedUser) {
     return this.alertsService.list(currentUser);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE")
+  @Roles(...ALERT_RESOLUTION_ROLES)
   @Patch(":id/resolve")
-  resolve(@Param("id") alertId: string, @Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
-    return this.alertsService.resolve(alertId, parseOrThrow(alertResolutionSchema, payload), currentUser.id);
+  resolve(
+    @Param("id") alertId: string,
+    @ValidatedBody(alertResolutionSchema) payload: AlertResolutionInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
+    return this.alertsService.resolve(alertId, payload, currentUser.id);
   }
 }
 

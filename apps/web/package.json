@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --schema ../../packages/db/prisma/schema.prisma && next build",
+    "build": "prisma generate --schema ../../packages/db/prisma/schema.prisma && tsc -p ../../packages/db/tsconfig.json && next build",
+    "test": "tsx src/lib/api.spec.ts",
     "start": "next start"
   },
   "dependencies": {

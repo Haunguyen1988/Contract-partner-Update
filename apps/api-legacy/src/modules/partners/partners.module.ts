@@ -1,11 +1,23 @@
-import { Body, ConflictException, Controller, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Delete, UseGuards } from "@nestjs/common";
-import { createPartnerSchema, normalizeText, updatePartnerSchema } from "@contract/shared";
+import { ConflictException, Controller, Get, Injectable, Module, NotFoundException, Param, Patch, Post, Delete, UseGuards } from "@nestjs/common";
+import {
+  createPartnerSchema,
+  normalizeText,
+  type CreatePartnerInput,
+  type UpdatePartnerInput,
+  updatePartnerSchema
+} from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import {
+  ADMIN_MANAGER_ROLES,
+  BUSINESS_READ_ROLES,
+  OPERATIONS_ROLES,
+  PARTNER_DETAIL_ROLES
+} from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
-import { parseOrThrow } from "../../common/zod";
+import { ValidatedBody } from "../../common/validated-body.decorator";
 import { JwtAuthGuard } from "../auth/auth.module";
 
 @Injectable()
@@ -53,8 +65,7 @@ export class PartnersService {
     return partner;
   }
 
-  async create(payload: unknown, currentUser: AuthenticatedUser) {
-    const input = parseOrThrow(createPartnerSchema, payload);
+  async create(input: CreatePartnerInput, currentUser: AuthenticatedUser) {
     const contactInfo = input.contactInfo ?? {};
     await this.assertOwnerExists(input.primaryOwnerId, input.backupOwnerId);
     await this.ensureNotDuplicate(input.legalName, input.taxCode);
@@ -88,14 +99,13 @@ export class PartnersService {
     return this.findOne(partner.id);
   }
 
-  async update(partnerId: string, payload: unknown, currentUser: AuthenticatedUser) {
+  async update(partnerId: string, input: UpdatePartnerInput, currentUser: AuthenticatedUser) {
     const existing = await this.prisma.partner.findUnique({ where: { id: partnerId } });
 
     if (!existing) {
       throw new NotFoundException("Không tìm thấy đối tác.");
     }
 
-    const input = parseOrThrow(updatePartnerSchema, payload);
     await this.assertOwnerExists(input.primaryOwnerId ?? existing.primaryOwnerId, input.backupOwnerId ?? existing.backupOwnerId);
 
     if (input.legalName || input.taxCode) {
@@ -198,31 +208,38 @@ export class PartnersService {
 export class PartnersController {
   constructor(private readonly partnersService: PartnersService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP")
+  @Roles(...BUSINESS_READ_ROLES)
   @Get()
   list() {
     return this.partnersService.list();
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT")
+  @Roles(...PARTNER_DETAIL_ROLES)
   @Get(":id")
   findOne(@Param("id") partnerId: string) {
     return this.partnersService.findOne(partnerId);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF")
+  @Roles(...OPERATIONS_ROLES)
   @Post()
-  create(@Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
+  create(
+    @ValidatedBody(createPartnerSchema) payload: CreatePartnerInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
     return this.partnersService.create(payload, currentUser);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF")
+  @Roles(...OPERATIONS_ROLES)
   @Patch(":id")
-  update(@Param("id") partnerId: string, @Body() payload: unknown, @CurrentUser() currentUser: AuthenticatedUser) {
+  update(
+    @Param("id") partnerId: string,
+    @ValidatedBody(updatePartnerSchema) payload: UpdatePartnerInput,
+    @CurrentUser() currentUser: AuthenticatedUser
+  ) {
     return this.partnersService.update(partnerId, payload, currentUser);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER")
+  @Roles(...ADMIN_MANAGER_ROLES)
   @Delete(":id")
   archive(@Param("id") partnerId: string, @CurrentUser() currentUser: AuthenticatedUser) {
     return this.partnersService.archive(partnerId, currentUser);

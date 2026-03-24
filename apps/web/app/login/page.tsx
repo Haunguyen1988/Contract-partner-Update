@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ActionFeedback } from "../../src/components/action-feedback";
+import { AsyncActionButton } from "../../src/components/async-action-button";
 import { IntegrationStatus } from "../../src/components/integration-status";
+import { useAsyncAction } from "../../src/lib/async-action";
+import { useFormState } from "../../src/lib/form-state";
 import { useSession } from "../../src/lib/session";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useSession();
-  const [email, setEmail] = useState("admin@prcor.local");
-  const [password, setPassword] = useState("Admin@123");
-  const [status, setStatus] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  const loginForm = useFormState({
+    email: "admin@prcor.local",
+    password: "Admin@123"
+  });
+  const loginAction = useAsyncAction();
 
   return (
     <div className="login-shell">
@@ -42,32 +46,31 @@ export default function LoginPage() {
           <div className="stack" style={{ marginTop: 24 }}>
             <div className="field">
               <label>Email</label>
-              <input value={email} onChange={(event) => setEmail(event.target.value)} />
+              <input {...loginForm.bind("email")} />
             </div>
             <div className="field">
               <label>Mật khẩu</label>
-              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+              <input type="password" {...loginForm.bind("password")} />
             </div>
-            <div className={`status-text ${status ? "error" : ""}`}>{status}</div>
+            <ActionFeedback feedback={loginAction.feedback} />
             <div className="button-row">
-              <button
+              <AsyncActionButton
                 className="button-primary"
-                disabled={submitting}
+                pending={loginAction.pending}
+                idleLabel="Vào hệ thống"
+                pendingLabel="Đang đăng nhập..."
                 onClick={async () => {
-                  setSubmitting(true);
-                  setStatus("");
-                  try {
-                    await login(email, password);
-                    router.push("/dashboard");
-                  } catch (error) {
-                    setStatus(error instanceof Error ? error.message : "Không thể đăng nhập.");
-                  } finally {
-                    setSubmitting(false);
-                  }
+                  await loginAction.run(
+                    () => login(loginForm.values.email, loginForm.values.password),
+                    {
+                      errorMessage: "Không thể đăng nhập.",
+                      onSuccess: () => {
+                        router.push("/dashboard");
+                      }
+                    }
+                  );
                 }}
-              >
-                {submitting ? "Đang đăng nhập..." : "Vào hệ thống"}
-              </button>
+              />
             </div>
           </div>
         </section>

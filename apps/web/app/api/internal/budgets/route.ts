@@ -1,30 +1,28 @@
 import type { Role } from "@contract/shared";
 import { createBudgetAllocationSchema } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseJsonBody, requireSession } from "../../../../src/server/internal-api";
-import { createBudgetsService } from "../../../../src/server/services";
+import {
+  defineAuthorizedRoute,
+  parseJsonBody
+} from "../../../../src/server/internal-api";
+import { budgetsService } from "../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../src/server/internal-api";
 
 const BUDGET_READ_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "FINANCE", "LEADERSHIP"];
 const BUDGET_WRITE_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "FINANCE"];
 
-export async function GET(request: NextRequest) {
-  try {
-    await requireSession(request, BUDGET_READ_ROLES);
-    return NextResponse.json(await createBudgetsService().list());
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const GET = defineAuthorizedRoute(
+  BUDGET_READ_ROLES,
+  async () => budgetsService.list()
+);
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await requireSession(request, BUDGET_WRITE_ROLES);
-    const payload = await parseJsonBody(request, createBudgetAllocationSchema);
-    return NextResponse.json(await createBudgetsService().upsert(payload, user.id));
-  } catch (error) {
-    return handleRouteError(error);
-  }
-}
+export const POST = defineAuthorizedRoute(
+  BUDGET_WRITE_ROLES,
+  async ({ request, user }) => budgetsService.upsert(
+    await parseJsonBody(request, createBudgetAllocationSchema),
+    user.id
+  )
+);

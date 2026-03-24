@@ -1,6 +1,7 @@
 import {
   DEFAULT_CAMPAIGN,
   computeRemainingBudget,
+  toNumericString,
   type CreateBudgetAllocationInput,
   type UpdateBudgetAllocationInput
 } from "@contract/shared";
@@ -8,10 +9,6 @@ import { DomainNotFoundError } from "./errors";
 import type { AuditLogger, BudgetsPrismaClient, BudgetEvaluation } from "./types";
 
 const COMMITTED_STATUSES = ["DRAFT", "PENDING_ACTIVATION", "ACTIVE", "EXPIRED"] as const;
-
-function decimalToString(value: { toString(): string } | number | string | null | undefined) {
-  return value ? value.toString() : "0";
-}
 
 export class BudgetsDomainService {
   constructor(
@@ -40,9 +37,9 @@ export class BudgetsDomainService {
       ownerId: budget.ownerId,
       ownerName: budget.owner.fullName,
       campaign: budget.campaign,
-      allocatedAmount: decimalToString(budget.allocatedAmount),
-      committedAmount: decimalToString(budget.committedAmount),
-      remainingAmount: decimalToString(budget.remainingAmount)
+      allocatedAmount: toNumericString(budget.allocatedAmount),
+      committedAmount: toNumericString(budget.committedAmount),
+      remainingAmount: toNumericString(budget.remainingAmount)
     }));
   }
 
@@ -195,7 +192,7 @@ export class BudgetsDomainService {
 
     return {
       hasBudget: true,
-      remainingAmount: decimalToString(budget.remainingAmount),
+      remainingAmount: toNumericString(budget.remainingAmount),
       projectedRemainingAmount: projectedRemaining.toString(),
       isOverBudget: projectedRemaining < 0
     };

@@ -30,9 +30,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const session = JSON.parse(raw) as { token: string; user: SessionUser };
-      setToken(session.token);
-      setUser(session.user);
+      try {
+        const session = JSON.parse(raw) as { token: string; user: SessionUser };
+        setToken(session.token);
+        setUser(session.user);
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
     }
     setReady(true);
   }, []);

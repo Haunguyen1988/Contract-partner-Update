@@ -11,9 +11,9 @@ import {
   type ContractDocumentMetadataInput
 } from "@contract/shared";
 import { AuditService } from "../../common/audit.service";
-import { rethrowDomainError } from "../../common/domain-error";
 import { CurrentUser, type AuthenticatedUser } from "../../common/current-user.decorator";
 import { PrismaService } from "../../common/prisma.service";
+import { BUSINESS_READ_ROLES, OPERATIONS_ROLES } from "../../common/role-groups";
 import { Roles } from "../../common/roles.decorator";
 import { RolesGuard } from "../../common/roles.guard";
 import { parseOrThrow } from "../../common/zod";
@@ -31,27 +31,6 @@ export class DocumentsService extends DocumentsDomainService {
       new LocalDocumentFileStore(configService.get<string>("UPLOAD_DIR", "./apps/api/uploads")),
       auditService
     );
-  }
-
-  override async listByContract(contractId: string) {
-    try {
-      return await super.listByContract(contractId);
-    } catch (error) {
-      rethrowDomainError(error);
-    }
-  }
-
-  override async upload(
-    contractId: string,
-    metadata: ContractDocumentMetadataInput,
-    file: UploadedBinaryFile | undefined,
-    changedById: string
-  ) {
-    try {
-      return await super.upload(contractId, metadata, file, changedById);
-    } catch (error) {
-      rethrowDomainError(error);
-    }
   }
 }
 
@@ -89,13 +68,13 @@ function parseDocumentMetadata(
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP")
+  @Roles(...BUSINESS_READ_ROLES)
   @Get("contracts/:contractId")
   listByContract(@Param("contractId") contractId: string) {
     return this.documentsService.listByContract(contractId);
   }
 
-  @Roles("ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF")
+  @Roles(...OPERATIONS_ROLES)
   @Post("contracts/:contractId")
   @UseInterceptors(FileInterceptor("file"))
   upload(

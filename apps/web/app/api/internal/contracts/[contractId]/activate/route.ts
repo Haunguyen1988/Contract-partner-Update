@@ -1,10 +1,14 @@
 import type { Role } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, requireSession } from "../../../../../../src/server/internal-api";
-import { createContractsService } from "../../../../../../src/server/services";
+import {
+  defineAuthorizedRoute,
+  resolveRouteParams
+} from "../../../../../../src/server/internal-api";
+import { contractsService } from "../../../../../../src/server/services";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../../../src/server/internal-api";
 
 const CONTRACT_ACTIVATE_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER"];
 
@@ -14,12 +18,10 @@ interface RouteContext {
   }>;
 }
 
-export async function POST(request: NextRequest, context: RouteContext) {
-  try {
-    const user = await requireSession(request, CONTRACT_ACTIVATE_ROLES);
-    const { contractId } = await context.params;
-    return NextResponse.json(await createContractsService().activate(contractId, user.id));
-  } catch (error) {
-    return handleRouteError(error);
+export const POST = defineAuthorizedRoute<RouteContext>(
+  CONTRACT_ACTIVATE_ROLES,
+  async ({ user, context }) => {
+    const { contractId } = await resolveRouteParams(context);
+    return contractsService.activate(contractId, user.id);
   }
-}
+);

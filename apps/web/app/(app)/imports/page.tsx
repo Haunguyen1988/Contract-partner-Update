@@ -1,14 +1,34 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@contract/ui";
-import { PageHeader } from "../../../src/components/page-header";
+import { ImportValidationCard } from "../../../src/components/import-validation-card";
 import { apiRequest } from "../../../src/lib/api";
+import { useAsyncAction } from "../../../src/lib/async-action";
 import { mockContractCsv, mockPartnerCsv } from "../../../src/lib/mocks";
 import { useSession } from "../../../src/lib/session";
 
+type ValidationAction = ReturnType<typeof useAsyncAction>;
+
+async function runValidation<TResult>(
+  action: ValidationAction,
+  request: () => Promise<TResult>,
+  errorMessage: string,
+  setResult: (value: string) => void
+) {
+  const result = await action.run(request, {
+    errorMessage,
+    onError: (message) => setResult(message)
+  });
+
+  if (result) {
+    setResult(JSON.stringify(result, null, 2));
+  }
+}
+
 export default function ImportsPage() {
   const { token } = useSession();
+  const validatePartnerAction = useAsyncAction();
+  const validateContractAction = useAsyncAction();
   const [partnerCsv, setPartnerCsv] = useState(mockPartnerCsv);
   const [contractCsv, setContractCsv] = useState(mockContractCsv);
   const [partnerResult, setPartnerResult] = useState<string>("");
@@ -16,59 +36,49 @@ export default function ImportsPage() {
 
   return (
     <div className="grid-2">
-      <Card title="Validate partner CSV" eyebrow="Migration">
-        <PageHeader title="Kiểm tra file đối tác" description="Bước này giúp chuẩn hóa owner, tax code và duplicate name trước khi import thật." />
-        <div className="field">
-          <label>Nội dung CSV</label>
-          <textarea value={partnerCsv} onChange={(event) => setPartnerCsv(event.target.value)} />
-        </div>
-        <div className="button-row">
-          <button
-            className="button-primary"
-            onClick={async () => {
-              try {
-                const result = await apiRequest("/api/internal/imports/partners/validate", {
-                  method: "POST",
-                  body: JSON.stringify({ csv: partnerCsv })
-                }, token);
-                setPartnerResult(JSON.stringify(result, null, 2));
-              } catch (error) {
-                setPartnerResult(error instanceof Error ? error.message : "Không thể validate partner CSV.");
-              }
-            }}
-          >
-            Validate partner file
-          </button>
-        </div>
-        <pre className="panel" style={{ padding: 16, overflowX: "auto", background: "var(--bg-1)", boxShadow: "none" }}>{partnerResult || "Chưa có kết quả."}</pre>
-      </Card>
+      <ImportValidationCard
+        title="Validate partner CSV"
+        eyebrow="Migration"
+        headerTitle="Kiểm tra file đối tác"
+        description="Bước này giúp chuẩn hóa owner, tax code và duplicate name trước khi import thật."
+        value={partnerCsv}
+        result={partnerResult}
+        pending={validatePartnerAction.pending}
+        buttonLabel="Validate partner file"
+        pendingLabel="Đang kiểm tra..."
+        onChange={setPartnerCsv}
+        onValidate={() => runValidation(
+          validatePartnerAction,
+          () => apiRequest("/api/internal/imports/partners/validate", {
+            method: "POST",
+            body: JSON.stringify({ csv: partnerCsv })
+          }, token),
+          "Không thể validate partner CSV.",
+          setPartnerResult
+        )}
+      />
 
-      <Card title="Validate contract CSV" eyebrow="Migration">
-        <PageHeader title="Kiểm tra file hợp đồng" description="Xác nhận contractNo, owner, partner reference, giá trị và ngày trước khi nạp dữ liệu lịch sử." />
-        <div className="field">
-          <label>Nội dung CSV</label>
-          <textarea value={contractCsv} onChange={(event) => setContractCsv(event.target.value)} />
-        </div>
-        <div className="button-row">
-          <button
-            className="button-primary"
-            onClick={async () => {
-              try {
-                const result = await apiRequest("/api/internal/imports/contracts/validate", {
-                  method: "POST",
-                  body: JSON.stringify({ csv: contractCsv })
-                }, token);
-                setContractResult(JSON.stringify(result, null, 2));
-              } catch (error) {
-                setContractResult(error instanceof Error ? error.message : "Không thể validate contract CSV.");
-              }
-            }}
-          >
-            Validate contract file
-          </button>
-        </div>
-        <pre className="panel" style={{ padding: 16, overflowX: "auto", background: "var(--bg-1)", boxShadow: "none" }}>{contractResult || "Chưa có kết quả."}</pre>
-      </Card>
+      <ImportValidationCard
+        title="Validate contract CSV"
+        eyebrow="Migration"
+        headerTitle="Kiểm tra file hợp đồng"
+        description="Xác nhận contractNo, owner, partner reference, giá trị và ngày trước khi nạp dữ liệu lịch sử."
+        value={contractCsv}
+        result={contractResult}
+        pending={validateContractAction.pending}
+        buttonLabel="Validate contract file"
+        pendingLabel="Đang kiểm tra..."
+        onChange={setContractCsv}
+        onValidate={() => runValidation(
+          validateContractAction,
+          () => apiRequest("/api/internal/imports/contracts/validate", {
+            method: "POST",
+            body: JSON.stringify({ csv: contractCsv })
+          }, token),
+          "Không thể validate contract CSV.",
+          setContractResult
+        )}
+      />
     </div>
   );
 }

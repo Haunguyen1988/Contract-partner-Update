@@ -1,21 +1,18 @@
-import { daysUntil, formatVnd, type Role } from "@contract/shared";
-import { NextRequest, NextResponse } from "next/server";
-import { handleRouteError, requireSession } from "../../../../../src/server/internal-api";
+import { daysUntil, formatVnd, toIsoDateString, toNumber, type Role } from "@contract/shared";
+import { defineAuthorizedRoute } from "../../../../../src/server/internal-api";
 import { prisma } from "../../../../../src/server/prisma";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+export {
+  INTERNAL_ROUTE_DYNAMIC as dynamic,
+  INTERNAL_ROUTE_RUNTIME as runtime
+} from "../../../../../src/server/internal-api";
 
 const DASHBOARD_ROLES: Role[] = ["ADMIN", "PR_COR_MANAGER", "PR_COR_STAFF", "FINANCE", "LEGAL", "PROCUREMENT", "LEADERSHIP"];
 
-function decimalToNumber(value: { toString(): string } | number | string | null | undefined) {
-  return Number(value ?? 0);
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const currentUser = await requireSession(request, DASHBOARD_ROLES);
-    const contractFilter = currentUser.role === "PR_COR_STAFF" ? { ownerId: currentUser.id } : {};
+export const GET = defineAuthorizedRoute(
+  DASHBOARD_ROLES,
+  async ({ user }) => {
+    const contractFilter = user.role === "PR_COR_STAFF" ? { ownerId: user.id } : {};
 
     const [activeContracts, alerts, budgets, expiringContracts, topOwners, myTasks] = await Promise.all([
       prisma.contract.count({
@@ -28,11 +25,11 @@ export async function GET(request: NextRequest) {
       prisma.alert.count({
         where: {
           status: "OPEN",
-          ...(currentUser.role === "PR_COR_STAFF" ? { contract: { ownerId: currentUser.id } } : {})
+          ...(user.role === "PR_COR_STAFF" ? { contract: { ownerId: user.id } } : {})
         }
       }),
       prisma.budgetAllocation.findMany({
-        where: currentUser.role === "PR_COR_STAFF" ? { ownerId: currentUser.id } : undefined,
+        where: user.role === "PR_COR_STAFF" ? { ownerId: user.id } : undefined,
         include: {
           owner: {
             select: {
@@ -67,17 +64,17 @@ export async function GET(request: NextRequest) {
       prisma.alert.findMany({
         where: {
           status: "OPEN",
-          ...(currentUser.role === "PR_COR_STAFF" ? { contract: { ownerId: currentUser.id } } : {})
+          ...(user.role === "PR_COR_STAFF" ? { contract: { ownerId: user.id } } : {})
         },
         orderBy: [{ severity: "desc" }, { dueDate: "asc" }],
         take: 6
       })
     ]);
 
-    const totalCommittedBudget = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.committedAmount), 0);
-    const totalRemainingBudget = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.remainingAmount), 0);
+    const totalCommittedBudget = budgets.reduce((sum, budget) => sum + toNumber(budget.committedAmount), 0);
+    const totalRemainingBudget = budgets.reduce((sum, budget) => sum + toNumber(budget.remainingAmount), 0);
 
-    return NextResponse.json({
+    return {
       summary: {
         activeContracts,
         expiringContracts: expiringContracts.length,
@@ -97,18 +94,16 @@ export async function GET(request: NextRequest) {
         title: contract.title,
         ownerName: contract.owner.fullName,
         partnerName: contract.partner.legalName,
-        endDate: contract.endDate.toISOString(),
+        endDate: toIsoDateString(contract.endDate),
         daysRemaining: daysUntil(contract.endDate)
       })),
       myTasks: myTasks.map((alert) => ({
         id: alert.id,
         title: alert.title,
         description: alert.message,
-        dueDate: alert.dueDate.toISOString(),
+        dueDate: toIsoDateString(alert.dueDate),
         severity: alert.severity
       }))
-    });
-  } catch (error) {
-    return handleRouteError(error);
+    };
   }
-}
+);

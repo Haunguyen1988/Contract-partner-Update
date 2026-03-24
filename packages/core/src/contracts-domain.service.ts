@@ -1,6 +1,9 @@
 import {
   DEFAULT_CAMPAIGN,
   needsMainContractDocument,
+  toIsoDateString,
+  toNumber,
+  toNumericString,
   type CreateContractInput,
   type UpdateContractInput
 } from "@contract/shared";
@@ -42,10 +45,6 @@ interface ContractDetailsRecord {
   }>;
 }
 
-function decimalToString(value: { toString(): string } | number | string | null | undefined) {
-  return value ? value.toString() : "0";
-}
-
 export class ContractsDomainService {
   constructor(
     private readonly prisma: ContractsPrismaClient,
@@ -77,9 +76,9 @@ export class ContractsDomainService {
       ownerName: contract.owner.fullName,
       campaign: contract.campaign,
       fiscalYear: contract.fiscalYear,
-      value: decimalToString(contract.value),
-      startDate: contract.startDate.toISOString(),
-      endDate: contract.endDate.toISOString(),
+      value: toNumericString(contract.value),
+      startDate: toIsoDateString(contract.startDate),
+      endDate: toIsoDateString(contract.endDate),
       lifecycleStatus: contract.lifecycleStatus,
       hasMainContract: contract.documents.some((document) => document.type === "MAIN_CONTRACT")
     }));
@@ -139,7 +138,7 @@ export class ContractsDomainService {
     const ownerId = input.ownerId ?? existing.ownerId;
     const campaign = input.campaign ?? existing.campaign;
     const fiscalYear = input.fiscalYear ?? existing.fiscalYear;
-    const value = input.value ?? Number(existing.value);
+    const value = input.value ?? toNumber(existing.value);
 
     await this.assertContractReferences(partnerId, ownerId);
     const budgetCheck = await this.enforceBudgetPolicy(fiscalYear, ownerId, campaign || DEFAULT_CAMPAIGN, value, contractId);
@@ -286,14 +285,14 @@ export class ContractsDomainService {
       title: contract.title,
       campaign: contract.campaign,
       fiscalYear: contract.fiscalYear,
-      value: decimalToString(contract.value),
-      startDate: contract.startDate.toISOString(),
-      endDate: contract.endDate.toISOString(),
+      value: toNumericString(contract.value),
+      startDate: toIsoDateString(contract.startDate),
+      endDate: toIsoDateString(contract.endDate),
       lifecycleStatus: contract.lifecycleStatus,
       notes: contract.notes,
       documents: contract.documents.map((document) => ({
         ...document,
-        uploadedAt: document.uploadedAt.toISOString()
+        uploadedAt: toIsoDateString(document.uploadedAt)
       }))
     };
   }

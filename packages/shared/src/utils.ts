@@ -1,5 +1,7 @@
 import { DEFAULT_CAMPAIGN } from "./constants";
 
+export type NumericValue = { toString(): string } | number | string | null | undefined;
+
 export function normalizeText(input: string): string {
   return input
     .normalize("NFD")
@@ -9,13 +11,21 @@ export function normalizeText(input: string): string {
     .toLowerCase();
 }
 
+export function toNumber(value: NumericValue, fallback = 0): number {
+  const normalized = Number(value ?? fallback);
+  return Number.isNaN(normalized) ? fallback : normalized;
+}
+
+export function toNumericString(value: NumericValue, fallback = "0"): string {
+  return value == null ? fallback : value.toString();
+}
+
 export function formatVnd(value: number | string): string {
-  const normalized = typeof value === "string" ? Number(value) : value;
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
     maximumFractionDigits: 0
-  }).format(normalized);
+  }).format(toNumber(value));
 }
 
 export function computeRemainingBudget(allocatedAmount: number, committedAmount: number): number {
